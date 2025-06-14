@@ -653,7 +653,7 @@ function CsvReader(_text)
     let firstRow = [];
     let result = [];
 
-    _text.split(/\r\n|\n\r/).forEach((row, rowIndex) =>
+    _text.split(/[\r\n]+/).forEach((row, rowIndex) =>
     {
         row.split(',').forEach((text, columnIndex) =>
         {
