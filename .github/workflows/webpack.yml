@@ -2,7 +2,7 @@ name: Build test page to GitHub Pages
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   workflow_dispatch:
     inputs:
       tags:
@@ -40,25 +40,8 @@ jobs:
       - name: Build webpack 
         run: |
           npm install
-          npm run build
+          npm run build:dev
       
-      - name: Upload sourcemap to Sentry
-        uses: getsentry/action-release@v1
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-        with:
-          environment: production
-          version: ${{ github.sha }}
-          sourcemaps: './dist ./dist/assets'
-          set_commits: skip
-          ignore_missing: true
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
-        with:
-          path: './dist'
       
       - name: Deploy to GitHub Pages
         id: deployment
