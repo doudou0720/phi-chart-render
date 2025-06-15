@@ -53,10 +53,12 @@ jobs:
     
       - name: Prepare Build Output
         run: |
+          ls | grep -v  dist | awk  '{system("rm -rf "$1)}' 
           # 将dist文件夹内容移动到根目录
           mv dist/* .
           # 清理残留文件
           rm -rf dist
+          rm .gitignore
           # 确保存在提交内容
           touch .keep
 
