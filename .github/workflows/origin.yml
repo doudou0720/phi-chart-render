@@ -42,6 +42,15 @@ jobs:
           npm install
           npm run build:dev
 
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+    
       - name: Prepare Build Output
         run: |
           # 将dist文件夹内容移动到根目录
@@ -63,14 +72,4 @@ jobs:
           git commit -m "Deploy from main (${GITHUB_SHA:0:7})" || echo "No changes to commit"
           
           # 强制推送到dist分支
-          git push origin HEAD:dist      
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './dist'
-      
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-    
+          git push origin HEAD:dist --force
