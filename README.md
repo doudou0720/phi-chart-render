@@ -1,4 +1,4 @@
-# <u>**This project is now deprecated**</u>
+# <u>**The origin project has been deprecated**</u>
 
 Read [this](https://github.com/MisaLiu/phi-chart-render/issues/19) for more infomation (Chinese).
 

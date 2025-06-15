@@ -9,7 +9,7 @@ const CurrentVersion = 'v' + config.version + '-' + git.short();
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/',
+  base: '/phi-chart-render/',
   plugins: [
     createHtmlPlugin({
       inject: {
@@ -39,7 +39,7 @@ export default defineConfig({
         name: 'phi-chart-render',
         short_name: 'phi-chart-render',
         description: 'A Phigros chart render based on Pixi.js',
-        scope: '/',
+        scope: '/phi-chart-render/',
         display: 'standalone',
         orientation: 'landscape',
         background_color: '#000000',
