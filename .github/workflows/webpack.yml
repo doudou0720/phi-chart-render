@@ -1,48 +1,52 @@
-name: Build test page to GitHub Pages
+name: Build and Deploy to Dist Branch
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
-    inputs:
-      tags:
-        description: 'Run workflow manually'
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+    branches: [ main ]
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-      
+  build-and-deploy:
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        node-version: [16.x]
-    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      # 1. 检出主分支代码
+      - name: Checkout main
+        uses: actions/checkout@v4
         with:
-          node-version: ${{ matrix.node-version }}
-      
-      - name: Setup Pages
-        uses: actions/configure-pages@v2
-      
-      - name: Build webpack 
+          ref: main
+
+      # 2. 设置Node.js环境
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. 安装依赖并构建
+      - name: Install and Build
         run: |
           npm install
           npm run build:dev
-      
-      
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v1
+
+      # 4. 将构建内容移出dist文件夹
+      - name: Prepare Build Output
+        run: |
+          # 将dist文件夹内容移动到根目录
+          mv dist/* .
+          # 清理残留文件
+          rm -rf dist
+          # 确保存在提交内容
+          touch .keep
+
+      # 5. 配置Git并推送到dist分支
+      - name: Deploy to Dist Branch
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # 添加所有文件到暂存区
+          git add -A
+          
+          # 尝试提交（忽略空提交错误）
+          git commit -m "Deploy from main (${GITHUB_SHA:0:7})" || echo "No changes to commit"
+          
+          # 强制推送到dist分支
+          git push origin HEAD:dist
