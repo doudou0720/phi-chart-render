@@ -163,7 +163,11 @@
                 <div class="content">
                     <div id="tab-file">
                         <label>Select chart file(s): <input type="file" id="file-chart-pack" multiple disabled></label><br>
-                        <div class="loading" id="file-read-progress">Please wait until assets loaded...</div>
+                        <br>
+                        <label>Or load from URL: <input type="text" id="chart-url-input" placeholder="https://example.com/chart.zip">
+    <button id="load-url-btn">Load</button></label>
+    <div class="loading" id="file-read-progress">Please wait until assets loaded...</div>
+    <hr />
                         <hr />
                         <label>Chart: <select id="file-chart"></select></label><br>
                         <label>Music: <select id="file-music"></select></label><br>
@@ -221,6 +225,7 @@
             <hr />
             Current version: <%= GIT_VERSION %><br>
             Origin GitHub homepage: <a href="https://github.com/MisaLiu/phi-chart-render" target="_blank">https://github.com/MisaLiu/phi-chart-render</a>
+            <br>
             Fork Github homepage: <a href="https://github.com/doudou0720/phi-chart-render" target="_blank">https://github.com/doudou0720/phi-chart-render</a><br>
             Report bugs <a href="https://github.com/doudou0720/phi-chart-render/issues/new/choose" target="_blank">Here</a>
             <hr />
