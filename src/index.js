@@ -132,7 +132,40 @@ doms.chartPackFile.addEventListener('input', function ()
     console.log(this.files);
     loadChartFiles(this.files);
 });
+// 添加URL加载按钮事件
+document.getElementById('load-url-btn').addEventListener('click', async () => {
+    const url = document.getElementById('chart-url-input').value;
+    if (!url) {
+        alert('Please enter a URL');
+        return;
+    }
+    
+    try {
+        doms.chartPackFileReadProgress.innerText = 'Downloading file from URL...';
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const blob = await response.blob();
+        const filename = url.split('/').pop() || 'chart.zip';
+        const file = new File([blob], filename, { 
+            type: blob.type,
+            lastModified: new Date().getTime()
+        });
+        
+        loadChartFiles([file]);
+    } catch (e) {
+        doms.chartPackFileReadProgress.innerText = 'Failed to download: ' + e.message;
+        console.error('URL load error:', e);
+    }
+});
 
+// 支持按回车键触发加载
+document.getElementById('chart-url-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById('load-url-btn').click();
+    }
+});
 doms.skinPackFile.addEventListener('input', function ()
 {
     if (this.files.length <= 0 || !this.files[0]) return;
@@ -534,7 +567,101 @@ window.addEventListener('load', async () =>
     doms.skinPackFile.disabled = false;
 
     calcHeightPercent();
-
+    // 新增：解析URL参数并自动加载
+    const urlParams = new URLSearchParams(window.location.search);
+    const chartUrlParam = urlParams.get('chart_url');
+    
+    // 获取URL输入框DOM
+    const chartUrlInput = document.getElementById('chart-url-input');
+    
+    if (chartUrlParam) {
+        try {
+            let chartUrl;
+            
+            // 尝试作为base64解码
+            try {
+                chartUrl = atob(chartUrlParam);
+                // 验证解码后是否是有效URL
+                if (!isValidUrl(chartUrl)) {
+                    throw new Error('Decoded string is not a valid URL');
+                }
+            } catch (e) {
+                // 如果不是base64，直接使用原始值
+                chartUrl = chartUrlParam;
+            }
+            
+            // 填入输入框
+            chartUrlInput.value = chartUrl;
+            
+            // 显示加载状态
+            doms.chartPackFileReadProgress.innerText = 'Loading chart from URL...';
+            
+            // 下载并加载图表文件
+            const response = await fetch(chartUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
+            const blob = await response.blob();
+            const filename = chartUrl.split('/').pop() || 'chart.zip';
+            const file = new File([blob], filename, { 
+                type: blob.type,
+                lastModified: new Date().getTime()
+            });
+            
+            // 加载图表文件
+            loadChartFiles([file]);
+            
+            // 更新状态
+            doms.chartPackFileReadProgress.innerText = `Loaded chart from ${chartUrl}`;
+        } catch (e) {
+            doms.chartPackFileReadProgress.innerText = 'Failed to load from URL: ' + e.message;
+            console.error('URL load error:', e);
+        }
+    }
+    
+    // 添加URL加载按钮事件
+    document.getElementById('load-url-btn').addEventListener('click', async () => {
+        const url = chartUrlInput.value;
+        if (!url) {
+            alert('Please enter a URL');
+            return;
+        }
+        
+        try {
+            doms.chartPackFileReadProgress.innerText = 'Downloading file from URL...';
+            
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
+            const blob = await response.blob();
+            const filename = url.split('/').pop() || 'chart.zip';
+            const file = new File([blob], filename, { 
+                type: blob.type,
+                lastModified: new Date().getTime()
+            });
+            
+            loadChartFiles([file]);
+        } catch (e) {
+            doms.chartPackFileReadProgress.innerText = 'Failed to download: ' + e.message;
+            console.error('URL load error:', e);
+        }
+    });
+    
+    // 支持按回车键触发加载
+    chartUrlInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('load-url-btn').click();
+        }
+    });
+    
+    // URL验证辅助函数
+    function isValidUrl(string) {
+        try {
+            new URL(string);
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
     doms.settings.testInputDelay.testTimes = 0;
     doms.settings.testInputDelay.testDelays = 0;
 
