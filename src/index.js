@@ -44,6 +44,22 @@ const fonts = {
     'A-OTF Shin Go Pr6N H': new FontFaceObserver('A-OTF Shin Go Pr6N H')
 }
 
+function toggleSkipConfigElements(show) {
+    const fileSelect = document.querySelector('.file-select');
+    const children = fileSelect.children;
+
+    for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        if (child.id !== 'loading-status' && child.id !== 'file-read-progress') {
+            if (show) {
+                child.classList.remove('skip-config-hide');
+            } else {
+                child.classList.add('skip-config-hide');
+            }
+        }
+    }
+}
+
 function getSearchString(name) {
     let searchString = window.location.search.substring(1, window.location.search.length);
     let searchStrings = searchString.split('&');
@@ -437,6 +453,16 @@ window.addEventListener('resize', () => {
     calcHeightPercent();
 });
 window.addEventListener('load', async () => {
+    const shouldSkipConfig = getSearchString('skip_config') === 'true';
+    const urlParams = new URLSearchParams(window.location.search);
+    const chartUrlParam = urlParams.get('chart_url');
+    // 获取URL输入框DOM
+    const chartUrlInput = document.getElementById('chart-url-input');
+
+    // 隐藏除进度外的元素
+    toggleSkipConfigElements(false);
+
+
     for (const name in fonts) {
         try {
             doms.loadingStatus.innerText = 'Loading font ' + name + ' ...';
@@ -617,11 +643,7 @@ window.addEventListener('load', async () => {
 
     calcHeightPercent();
     // 新增：解析URL参数并自动加载
-    const urlParams = new URLSearchParams(window.location.search);
-    const chartUrlParam = urlParams.get('chart_url');
-    const shouldSkipConfig = getSearchString('skip_config') === 'true';
-    // 获取URL输入框DOM
-    const chartUrlInput = document.getElementById('chart-url-input');
+
 
 
     // 新增：加载完成检查函数
@@ -697,6 +719,7 @@ window.addEventListener('load', async () => {
                     // 添加短暂延迟确保UI更新
                     setTimeout(() => {
                         // 模拟点击开始按钮
+                        toggleSkipConfigElements(true);
                         doms.startBtn.click();
 
                         // 自动切换到全屏
@@ -739,7 +762,7 @@ window.addEventListener('load', async () => {
             console.error('URL load error:', e);
         }
     });
-
+    toggleSkipConfigElements(true);
     // 支持按回车键触发加载
     chartUrlInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
