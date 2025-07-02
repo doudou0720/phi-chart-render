@@ -463,179 +463,107 @@ window.addEventListener('load', async () => {
     toggleSkipConfigElements(false);
 
 
-    for (const name in fonts) {
-        try {
-            doms.loadingStatus.innerText = 'Loading font ' + name + ' ...';
-            await fonts[name].load(null, 30000);
-        } catch (e) {
-            console.error(e);
-        }
-    }
-    document.body.classList.add('font-loaded');
-
-    (await (async (resources = []) => {
-        for (const resource of resources) {
-            doms.loadingStatus.innerText = 'Loading asset ' + resource.name + ' ...';
-
+    // 并发加载所有字体
+    const fontLoadPromises = Object.keys(fonts).map(name => 
+        (async () => {
             try {
-                let res = await requestFile(resource.url);
-                let imgBitmap = await createImageBitmap(res);
-                let texture = await Texture.from(imgBitmap);
+                doms.loadingStatus.innerText = `Loading font ${name} ...`;
+                await fonts[name].load(null, 30000);
+            } catch (e) {
+                console.error(e);
+            }
+        })()
+    );
 
-                Texture.addToCache(texture, resource.name);
-                assets.textures[resource.name] = texture;
+    // 定义所有需要加载的资源
+    const allResources = [
+        // 图片资源
+        ...[
+            { name: 'tap', url: './assets/Tap.png', type: 'image' },
+            { name: 'tapHL', url: './assets/TapHL.png', type: 'image' },
+            { name: 'drag', url: './assets/Drag.png', type: 'image' },
+            { name: 'dragHL', url: './assets/DragHL.png', type: 'image' },
+            { name: 'flick', url: './assets/Flick.png', type: 'image' },
+            { name: 'flickHL', url: './assets/FlickHL.png', type: 'image' },
+            { name: 'holdHead', url: './assets/HoldHead.png', type: 'image' },
+            { name: 'holdHeadHL', url: './assets/HoldHeadHL.png', type: 'image' },
+            { name: 'holdBody', url: './assets/Hold.png', type: 'image' },
+            { name: 'holdBodyHL', url: './assets/HoldHL.png', type: 'image' },
+            { name: 'holdEnd', url: './assets/HoldEnd.png', type: 'image' },
+            { name: 'judgeline', url: './assets/JudgeLine.png', type: 'image' },
+            { name: 'clickRaw', url: './assets/clickRaw128.png', type: 'image' },
+            { name: 'pauseButton', url: './assets/pauseButton.png', type: 'image' }
+        ],
+        // 音效资源
+        ...[
+            { name: 'tap', url: './assets/sounds/Hitsound-Tap.ogg', type: 'sound', options: { loop: false, noTimer: true } },
+            { name: 'drag', url: './assets/sounds/Hitsound-Drag.ogg', type: 'sound', options: { loop: false, noTimer: true } },
+            { name: 'flick', url: './assets/sounds/Hitsound-Flick.ogg', type: 'sound', options: { loop: false, noTimer: true } }
+        ],
+        // 结果音乐资源
+        ...[
+            { name: 'ez', url: './assets/sounds/result/ez.ogg', type: 'resultMusic', options: { loop: true, noTimer: true } },
+            { name: 'hd', url: './assets/sounds/result/hd.ogg', type: 'resultMusic', options: { loop: true, noTimer: true } },
+            { name: 'in', url: './assets/sounds/result/in.ogg', type: 'resultMusic', options: { loop: true, noTimer: true } },
+            { name: 'at', url: './assets/sounds/result/at.ogg', type: 'resultMusic', options: { loop: true, noTimer: true } },
+            { name: 'sp', url: './assets/sounds/result/sp.ogg', type: 'resultMusic', options: { loop: true, noTimer: true } },
+            { name: 'spGlitch', url: './assets/sounds/result/sp_glitch.ogg', type: 'resultMusic', options: { loop: true, noTimer: true } }
+        ]
+    ];
 
-                if (resource.name == 'clickRaw') {
-                    let _clickTextures = [];
-
-                    for (let i = 0; i < Math.floor(assets.textures[resource.name].height / assets.textures[resource.name].width); i++) {
-                        let rectangle = new Rectangle(0, i * assets.textures[resource.name].width, assets.textures[resource.name].width, assets.textures[resource.name].width);
-                        let texture = new Texture(assets.textures[resource.name].baseTexture, rectangle);
-
-                        Texture.addToCache(texture, resource.name + (i + 0));
-
-                        texture.defaultAnchor.set(0.5);
-                        _clickTextures.push(texture);
-                    }
-
-                    assets.textures[resource.name] = _clickTextures;
+    // 并发加载所有资源（每个文件独立处理）
+    const resourceLoadPromises = allResources.map(resource => 
+        (async () => {
+            try {
+                doms.loadingStatus.innerText = `Loading ${resource.type === 'image' ? 'asset' : 
+                                              resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
+                
+                // 获取文件内容
+                const res = await requestFile(resource.url);
+                
+                // 根据资源类型处理
+                switch (resource.type) {
+                    case 'image':
+                        const imgBitmap = await createImageBitmap(res);
+                        const texture = await Texture.from(imgBitmap);
+                        Texture.addToCache(texture, resource.name);
+                        assets.textures[resource.name] = texture;
+                        
+                        // 特殊处理 clickRaw
+                        if (resource.name === 'clickRaw') {
+                            const _clickTextures = [];
+                            for (let i = 0; i < Math.floor(texture.height / texture.width); i++) {
+                                const rectangle = new Rectangle(0, i * texture.width, texture.width, texture.width);
+                                const subTexture = new Texture(texture.baseTexture, rectangle);
+                                Texture.addToCache(subTexture, `${resource.name}${i}`);
+                                subTexture.defaultAnchor.set(0.5);
+                                _clickTextures.push(subTexture);
+                            }
+                            assets.textures[resource.name] = _clickTextures;
+                        }
+                        break;
+                        
+                    case 'sound':
+                        const sound = await loadAudio(res, resource.options.loop, resource.options.noTimer);
+                        if (!assets.sounds) assets.sounds = {};
+                        assets.sounds[resource.name] = sound;
+                        break;
+                        
+                    case 'resultMusic':
+                        const resultMusic = await loadAudio(res, resource.options.loop, resource.options.noTimer);
+                        if (!assets.sounds.result) assets.sounds.result = {};
+                        assets.sounds.result[resource.name] = resultMusic;
+                        break;
                 }
             } catch (e) {
-                console.error('Failed getting resource: ' + resource.name, e);
+                console.error(`Failed getting resource ${resource.name}:`, e);
             }
-        }
-    })([{
-            name: 'tap',
-            url: './assets/Tap.png'
-        },
-        {
-            name: 'tapHL',
-            url: './assets/TapHL.png'
-        },
-        {
-            name: 'drag',
-            url: './assets/Drag.png'
-        },
-        {
-            name: 'dragHL',
-            url: './assets/DragHL.png'
-        },
-        {
-            name: 'flick',
-            url: './assets/Flick.png'
-        },
-        {
-            name: 'flickHL',
-            url: './assets/FlickHL.png'
-        },
-        {
-            name: 'holdHead',
-            url: './assets/HoldHead.png'
-        },
-        {
-            name: 'holdHeadHL',
-            url: './assets/HoldHeadHL.png'
-        },
-        {
-            name: 'holdBody',
-            url: './assets/Hold.png'
-        },
-        {
-            name: 'holdBodyHL',
-            url: './assets/HoldHL.png'
-        },
-        {
-            name: 'holdEnd',
-            url: './assets/HoldEnd.png'
-        },
-        {
-            name: 'judgeline',
-            url: './assets/JudgeLine.png'
-        },
-        {
-            name: 'clickRaw',
-            url: './assets/clickRaw128.png'
-        },
-
-        {
-            name: 'pauseButton',
-            url: './assets/pauseButton.png'
-        }
-    ]));
-
-    (await (async (resources = [], options = {}) => {
-        for (const resource of resources) {
-            doms.loadingStatus.innerText = 'Loading hitsound ' + resource.name + ' ...';
-
-            try {
-                let res = await requestFile(resource.url);
-                let audio = await loadAudio(res, false, options.noTimer);
-
-                if (!assets.sounds) assets.sounds = {};
-                assets.sounds[resource.name] = audio;
-            } catch (e) {
-                console.error('Failed getting resource: ' + resource.name, e);
-            }
-        }
-    })([{
-            name: 'tap',
-            url: './assets/sounds/Hitsound-Tap.ogg'
-        },
-        {
-            name: 'drag',
-            url: './assets/sounds/Hitsound-Drag.ogg'
-        },
-        {
-            name: 'flick',
-            url: './assets/sounds/Hitsound-Flick.ogg'
-        }
-    ], {
-        noTimer: true
-    }));
-
-    (await (async (resources = [], options = {}) => {
-        for (const resource of resources) {
-            doms.loadingStatus.innerText = 'Loading result music ' + resource.name + ' ...';
-
-            try {
-                let res = await requestFile(resource.url);
-                let audio = await loadAudio(res, options.loop, options.noTimer);
-
-                if (!assets.sounds.result) assets.sounds.result = {};
-                assets.sounds.result[resource.name] = audio;
-            } catch (e) {
-                console.error('Failed getting resource: ' + resource.name, e);
-            }
-        }
-    })([{
-            name: 'ez',
-            url: './assets/sounds/result/ez.ogg'
-        },
-        {
-            name: 'hd',
-            url: './assets/sounds/result/hd.ogg'
-        },
-        {
-            name: 'in',
-            url: './assets/sounds/result/in.ogg'
-        },
-        {
-            name: 'at',
-            url: './assets/sounds/result/at.ogg'
-        },
-        {
-            name: 'sp',
-            url: './assets/sounds/result/sp.ogg'
-        },
-        {
-            name: 'spGlitch',
-            url: './assets/sounds/result/sp_glitch.ogg'
-        },
-    ], {
-        loop: true,
-        noTimer: true
-    }));
-
+        })()
+    );
+    
+    await Promise.all(resourceLoadPromises);
+    document.body.classList.add('font-loaded');
+    
     doms.loadingStatus.innerText = 'All done!';
     doms.chartPackFileReadProgress.innerText = 'No chart pack file selected';
     doms.chartPackFile.disabled = false;
