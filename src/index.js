@@ -515,8 +515,7 @@ window.addEventListener('load', async () => {
     const resourceLoadPromises = allResources.map(resource => 
         (async () => {
             try {
-                doms.loadingStatus.innerText = `Loading ${resource.type === 'image' ? 'asset' : 
-                                              resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
+                doms.loadingStatus.innerText = `Loading assets ...`;
                 
                 // 获取文件内容
                 const res = await requestFile(resource.url);
@@ -541,19 +540,26 @@ window.addEventListener('load', async () => {
                             }
                             assets.textures[resource.name] = _clickTextures;
                         }
+                        doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' : 
+                            resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
                         break;
                         
                     case 'sound':
                         const sound = await loadAudio(res, resource.options.loop, resource.options.noTimer);
                         if (!assets.sounds) assets.sounds = {};
                         assets.sounds[resource.name] = sound;
+                        doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' : 
+                            resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
                         break;
                         
                     case 'resultMusic':
                         const resultMusic = await loadAudio(res, resource.options.loop, resource.options.noTimer);
                         if (!assets.sounds.result) assets.sounds.result = {};
                         assets.sounds.result[resource.name] = resultMusic;
+                        doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' : 
+                            resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
                         break;
+                    
                 }
             } catch (e) {
                 console.error(`Failed getting resource ${resource.name}:`, e);
