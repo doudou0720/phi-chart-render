@@ -290,15 +290,15 @@ class ProgressTracker {
         if (tracker) {
             this.updateProgress(name, tracker.total, tracker.total);
             tracker.element.style.background = 'rgba(76, 175, 80, 0.2)';
-            setTimeout(() => {
-                tracker.element.remove();
-                delete this.trackers[name];
+            // setTimeout(() => {
+                // tracker.element.remove();
+                // delete this.trackers[name];
 
-                // 当所有进度条完成后隐藏容器
-                if (Object.keys(this.trackers).length === 0) {
-                    this.container.style.display = 'none';
-                }
-            }, 500);
+                // // 当所有进度条完成后隐藏容器
+                // if (Object.keys(this.trackers).length === 0) {
+                    // this.container.style.display = 'none';
+                // }
+            // }, 500);
         }
     }
 
@@ -799,7 +799,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 ]
             ];
-
+            debugger;
             // 并发加载所有资源（每个文件独立处理）
             const resourceLoadPromises = allResources.map(resource =>
                 (async () => {
