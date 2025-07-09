@@ -25,21 +25,21 @@
                         if (document.mozCancelFullScreen) return document.mozCancelFullScreen();
                         if (document.msExitFullscreen) return document.msExitFullscreen();
                     }
-
+        
                     if (this.element == elem) {
                         elem.style.position = 'relative';
                         elem.style.top = 'unset';
                         elem.style.left = 'unset';
                         elem.style.zIndex = 'unset';
                         document.body.style.overflow = 'auto';
-
+        
                         document.inDocumentFullscreenElement = null;
                         if (global.functions.resizeCanvas) global.functions.resizeCanvas();
                         return true;
                     }
-
+        
                     return false;
-
+        
                 } else {
                     if (!inDocument) {
                         if (!(elem instanceof HTMLElement)) elem = document.body;
@@ -48,39 +48,39 @@
                         if (elem.mozRequestFullScreen) return elem.mozRequestFullScreen();
                         if (elem.msRequestFullscreen) return elem.msRequestFullscreen();
                     }
-
+        
                     if (elem != document.body) {
                         elem.style.position = 'fixed';
                         elem.style.top = '0';
                         elem.style.left = '0';
                         elem.style.zIndex = '5050';
                         document.body.style.overflow = 'hidden';
-
+        
                         document.inDocumentFullscreenElement = elem;
                         if (global.functions.resizeCanvas) global.functions.resizeCanvas();
                         return true;
                     }
-
+        
                     return false;
                 }
             },
-
+        
             // 检查当前全屏的元素
             check(elem) {
                 if (!(elem instanceof HTMLElement)) elem = document.body;
                 return this.element == elem;
             },
-
+        
             // 返回当前浏览器的全屏组件。
             get element() {
                 return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || document.inDocumentFullscreenElement;
             },
-
+        
             // 返回当前浏览器是否支持全屏 API。
             get enabled() {
                 return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled);
             },
-
+        
             // 返回当前的全屏模式。2 == 网页内全屏，1 == API 全屏，0 == 没有开启全屏
             get type() {
                 if (document.inDocumentFullscreenElement) {
@@ -92,32 +92,32 @@
                 }
             }
         };
-
+        
         function getSearchString(name) {
             let searchString = window.location.search.substring(1, window.location.search.length);
             let searchStrings = searchString.split('&');
-
+        
             if (!name || name == '') return null;
             if (searchStrings.length <= 0) return null;
-
+        
             for (const singleString of searchStrings) {
                 if (singleString.indexOf(name + '=') >= 0) {
                     let stringValue = singleString.replace(name + '=', '');
                     return decodeURIComponent(stringValue);
                 }
             }
-
+        
             return null;
         }
-
+        
         if (getSearchString('debug') === 'true') {
             let xhr = new XMLHttpRequest();
-
+        
             xhr.onreadystatechange = () => {
                 if (xhr.readyState === 4 && xhr.status === 200) {
                     eval(xhr.responseText);
                     window.vConsole = new window.VConsole();
-
+        
                     console.warn(
                         'You\'re using debug mode, which will enable vConsole for mobile device debuging.\n' +
                         'You SHOULDN\'T use debug mode in normal use, and don\'t run ANY code here from people that you don\'t know.'
@@ -128,7 +128,7 @@
                     );
                 }
             }
-
+        
             xhr.open('GET', 'https://cdn.bootcdn.net/ajax/libs/vConsole/3.15.0/vconsole.min.js');
             xhr.send();
         }// 将全屏和游戏控制函数暴露到全局
@@ -147,16 +147,26 @@
         </div>
         <hr />
         <div>
-            Due to some performance issue on FireFox Android, consider using <a
-                href="https://github.com/kiwibrowser/src.next/releases" target="_blank">Kiwi Browser</a> or <a
-                href="https://viayoo.com/" target="_blank">Via</a> , <a href="https://www.google.com/chrome/"
-                target="_blank">Google Chrome</a> or MS Edge.
+            Due to some performance issue on FireFox Android, consider using <a href="https://github.com/kiwibrowser/src.next/releases" target="_blank">Kiwi Browser</a> or <a href="https://viayoo.com/" target="_blank">Via</a> , <a href="https://www.google.com/chrome/" target="_blank">Google Chrome</a> or MS Edge.
         </div>
         <hr />
         <div class="loading none-hide" id="loading-status">Loading scripts...</div>
         <div class="loading none-hide" id="file-read-progress">Please wait until assets loaded...</div>
-        <div style="display: none !important;" id="progress-template">
-            <div class="file-name"></div>
+        <div style="display:none">
+            <div id="progress-template">
+                <div class="file-name"></div>
+                <div class="progress-bar">
+                    <div class="progress"></div>
+                </div>
+                <div class="progress-info">
+                    <span class="loaded"></span>
+                    <span class="speed"></span>
+                    <span class="total"></span>
+                </div>
+            </div>
+        </div>
+        <div class="none-hide" id="progress-total">
+            <div class="file-name">Total</div>
             <div class="progress-bar">
                 <div class="progress"></div>
             </div>
@@ -166,14 +176,7 @@
                 <span class="total"></span>
             </div>
         </div>
-        <div class="none-hide">
-            <div class="file-name"></div>
-            <div class="progress-bar">
-                <div class="progress"></div>
-            </div>
-        </div>
-        </div>
-        <details class="none-hide">
+        <details class="none-hide" open>
             <div id="progress-container"></div>
         </details>
         <hr />
@@ -189,8 +192,7 @@
                 <div id="tab-file">
                     <label>Select chart file(s): <input type="file" id="file-chart-pack" multiple disabled></label><br>
 
-                    <label>Or load from URL: <input type="text" id="chart-url-input"
-                            placeholder="https://example.com/chart.zip">
+                    <label>Or load from URL: <input type="text" id="chart-url-input" placeholder="https://example.com/chart.zip">
                         <button id="load-url-btn">Load</button></label>
 
                     <hr />
@@ -199,8 +201,7 @@
                     <label>BG: <select id="file-bg"></select></label>
                 </div>
                 <div id="tab-visual">
-                    <label>Custom skin pack: <input type="file" id="file-skin-pack" disabled /></label>&nbsp;<a
-                        href="./skin.example.zip" download="skin.example.zip">Download example skin pack</a><br>
+                    <label>Custom skin pack: <input type="file" id="file-skin-pack" disabled /></label>&nbsp;<a href="./skin.example.zip" download="skin.example.zip">Download example skin pack</a><br>
                     <div class="loading" id="loading-skin-pack">No skinpack selected.</div>
                     <hr />
                     <label><input type="checkbox" id="settings-show-bg" checked />Show BG</label><br>
@@ -220,25 +221,20 @@
                             <option value="3">Original</option>
                         </select></label>
                     <hr />
-                    <label>Note scale: <input type="range" id="settings-note-scale" min="0" max="4000"
-                            value="2000"></label><br>
-                    <label>Background dim: <input type="range" id="settings-bg-dim" min="0" max="1" step="0.01"
-                            value="0.5"></label><br>
+                    <label>Note scale: <input type="range" id="settings-note-scale" min="0" max="4000" value="2000"></label><br>
+                    <label>Background dim: <input type="range" id="settings-bg-dim" min="0" max="1" step="0.01" value="0.5"></label><br>
                     <label>BG blur: <input type="range" id="settings-bg-blur" min="0" max="100" value="50" /></label>
                 </div>
                 <div id="tab-sound">
-                    <label>Chart offset: <input type="number" id="settings-audio-offset" placeholder="0"
-                            style="width:4em" />ms</label><br>
+                    <label>Chart offset: <input type="number" id="settings-audio-offset" placeholder="0" style="width:4em" />ms</label><br>
                     <div style="margin-left:20px">(recommended 100ms for Chrome/Chrome based browsers)</div>
                     <button id="settings-test-input-delay">Tap on this button to test input delay...</button><br>
                     <label><input type="checkbox" id="settings-use-browser-latency" />Use browser's output latency
                         (experimental)</label><br>
-                    <label>Speed: <input type="range" id="settings-audio-speed" min="0.25" max="1.75" step="0.25"
-                            value="1"></label><br>
+                    <label>Speed: <input type="range" id="settings-audio-speed" min="0.25" max="1.75" step="0.25" value="1"></label><br>
                     <hr />
                     <label><input type="checkbox" id="settings-hitsound" checked />Hitsound</label><br>
-                    <label>Hitsound volume: <input type="range" id="settings-hitsound-volume" min="0" max="1"
-                            step="0.01" value="1"></label><br>
+                    <label>Hitsound volume: <input type="range" id="settings-hitsound-volume" min="0" max="1" step="0.01" value="1"></label><br>
                 </div>
                 <div id="tab-other">
                     <label><input type="checkbox" id="settings-challenge-mode" />Challenge Mode</label><br>
@@ -260,21 +256,17 @@
         <hr />
         Current version: <%= GIT_VERSION %>
         <br>
-            <div>
-                Origin GitHub homepage: <a href="https://github.com/MisaLiu/phi-chart-render"
-                    target="_blank">https://github.com/MisaLiu/phi-chart-render</a>
-                <br>
-                Fork Github homepage: <a href="https://github.com/doudou0720/phi-chart-render"
-                    target="_blank">https://github.com/doudou0720/phi-chart-render</a><br>
-                Report bugs <a href="https://github.com/doudou0720/phi-chart-render/issues/new/choose"
-                    target="_blank">Here</a>
-                <hr />
-                Consider <a href="https://patreon.com/HIMlaoS_Misa" target="_blank">support me on Patreon</a> if you
-                like!<br />
-                喜欢的话可以到 <a href="https://afdian.net/a/MisaLiu" target="_blank">爱发电</a> 支持一下原作者！
-            </div>
-            <button onclick="fullscreen.toggle(document.body, false)" class="fullscreen"
-                id="fullscreen">Fullscreen</button>
+        <div>
+            Origin GitHub homepage: <a href="https://github.com/MisaLiu/phi-chart-render" target="_blank">https://github.com/MisaLiu/phi-chart-render</a>
+            <br>
+            Fork Github homepage: <a href="https://github.com/doudou0720/phi-chart-render" target="_blank">https://github.com/doudou0720/phi-chart-render</a><br>
+            Report bugs <a href="https://github.com/doudou0720/phi-chart-render/issues/new/choose" target="_blank">Here</a>
+            <hr />
+            Consider <a href="https://patreon.com/HIMlaoS_Misa" target="_blank">support me on Patreon</a> if you
+            like!<br />
+            喜欢的话可以到 <a href="https://afdian.net/a/MisaLiu" target="_blank">爱发电</a> 支持一下原作者！
+        </div>
+        <button onclick="fullscreen.toggle(document.body, false)" class="fullscreen" id="fullscreen">Fullscreen</button>
     </div>
 
     <div class="debug-value"></div>
@@ -343,10 +335,8 @@
     </div>
 
     <div class="error-window">
-        <div>An error has just occurred, if you're sure this is not caused by you, please <a
-                href="https://github.com/doudou0720/phi-chart-render/issues/new/choose" target="_blank">report it on
-                GitHub</a>. <!--a href="#" onclick="eruda.show();return false;">Show Eruda</a--><button
-                class="close">Close</button></div>
+        <div>An error has just occurred, if you're sure this is not caused by you, please <a href="https://github.com/doudou0720/phi-chart-render/issues/new/choose" target="_blank">report it on
+                GitHub</a>. <!--a href="#" onclick="eruda.show();return false;">Show Eruda</a--><button class="close">Close</button></div>
         <pre><code class="content">Test Text Not A Real Error</code></pre>
         <div>The infomation about this error will upload to <a href="https://sentry.io" target="_blank">Sentry.io</a>
             for analyze and debug.</div>

@@ -45,6 +45,7 @@ const fonts = {
 }
 
 function toggleSkipConfigElements(show) {
+    // 兼容性问题，暂时注释
     const fileSelect = document.querySelector('.file-select');
     const children = fileSelect.children;
 
@@ -130,7 +131,8 @@ const doms = {
         content: document.querySelector('div.error-window code.content'),
     },
     progressContainer: document.querySelector('#progress-container'),
-    progressTemplate: document.querySelector('#progress-template')
+    progressTemplate: document.querySelector('#progress-template'),
+    progressTotal: document.querySelector('#progress-total')
 };
 
 const files = {
@@ -191,28 +193,37 @@ class ProgressTracker {
         this.trackers = {};
         this.container = doms.progressContainer;
         this.template = doms.progressTemplate;
-        this.container.style.display = 'block';
-        this.template.querySelector(".total").textContent = '0';
-    }
-
-    addFile(name, url) {
-        const element = this.template.cloneNode(true);
-        element.id = `progress-${name}`;
-        element.style.display = 'block';
-
-        element.querySelector('.file-name').textContent = name;
-        element.querySelector('.loaded').textContent = '0B';
-        element.querySelector('.total').textContent = '0B';
-        element.querySelector('.speed').textContent = '0B/s';
-
-        this.container.appendChild(element);
-
-        this.trackers[name] = {
-            element,
-            startTime: Date.now(),
+        this.total = {
+            element: doms.progressTotal,
             lastLoaded: 0,
             lastTime: Date.now(),
             speed: 0
+        };
+        this.totaldata = 0;
+        this.loaddata = 0;
+    }
+
+    addFile(name, url) {
+        const element = this.template.content.cloneNode(true);
+        const wrapper = document.createElement('div');
+        wrapper.appendChild(element);
+        const progressElement = wrapper.firstElementChild;
+        progressElement.id = `progress-${name}`;
+
+        progressElement.querySelector('.file-name').textContent = name;
+        progressElement.querySelector('.loaded').textContent = '0B';
+        progressElement.querySelector('.total').textContent = '0B';
+        progressElement.querySelector('.speed').textContent = '0B/s';
+
+        this.container.appendChild(progressElement);
+        
+        this.trackers[name] = {
+            element: progressElement,
+            startTime: Date.now(),
+            lastLoaded: 0,
+            lastTime: Date.now(),
+            speed: 0,
+            total: 0
         };
 
         return this.trackers[name];
@@ -221,11 +232,21 @@ class ProgressTracker {
     updateProgress(name, loaded, total) {
         const tracker = this.trackers[name];
         if (!tracker) return;
-
+        
+        // 如果是第一次更新，增加总数据量
+        if (tracker.total === 0 && total > 0) {
+            this.totaldata += total;
+        }
+        
+        tracker.total = total;
+        
         const now = Date.now();
         const elapsed = (now - tracker.lastTime) / 1000;
         const delta = loaded - tracker.lastLoaded;
-
+        
+        // 更新总加载量
+        this.loaddata += delta;
+        
         // 计算速度（至少0.5秒更新一次避免抖动）
         if (elapsed > 0.5) {
             tracker.speed = delta / elapsed;
@@ -239,11 +260,35 @@ class ProgressTracker {
         tracker.element.querySelector('.loaded').textContent = formatBytes(loaded);
         tracker.element.querySelector('.total').textContent = formatBytes(total);
         tracker.element.querySelector('.speed').textContent = `${formatBytes(tracker.speed)}/s`;
+        
+        // 更新总进度
+        this.updateTotalProgress();
+    }
+
+    updateTotalProgress() {
+        const now = Date.now();
+        const elapsed = (now - this.total.lastTime) / 1000;
+        const delta = this.loaddata - this.total.lastLoaded;
+
+        // 计算速度（至少0.5秒更新一次避免抖动）
+        if (elapsed > 0.5) {
+            this.total.speed = delta / elapsed;
+            this.total.lastLoaded = this.loaddata;
+            this.total.lastTime = now;
+        }
+
+        // 更新UI
+        const progress = this.totaldata > 0 ? (this.loaddata / this.totaldata * 100) : 0;
+        this.total.element.querySelector('.progress').style.width = `${progress}%`;
+        this.total.element.querySelector('.loaded').textContent = formatBytes(this.loaddata);
+        this.total.element.querySelector('.total').textContent = formatBytes(this.totaldata);
+        this.total.element.querySelector('.speed').textContent = `${formatBytes(this.total.speed)}/s`;
     }
 
     complete(name) {
         const tracker = this.trackers[name];
         if (tracker) {
+            this.updateProgress(name, tracker.total, tracker.total);
             tracker.element.style.background = 'rgba(76, 175, 80, 0.2)';
             setTimeout(() => {
                 tracker.element.remove();
@@ -252,7 +297,6 @@ class ProgressTracker {
                 // 当所有进度条完成后隐藏容器
                 if (Object.keys(this.trackers).length === 0) {
                     this.container.style.display = 'none';
-                    
                 }
             }, 500);
         }
