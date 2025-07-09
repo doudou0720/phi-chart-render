@@ -1,25 +1,21 @@
-try {
-    export {
-        default as Game
-    }
+export {
+    default as Game
+}
     from './game';
-    export {
-        default as Chart
-    }
+export {
+    default as Chart
+}
     from './chart';
 
-    export {
-        default as WAudio
-    }
-    from './audio';
-    export {
-        default as Effect
-    }
-    from './effect';
-    export {
-        default as Shader
-    }
-    from './effect/shader';
-} catch (error) {
-    console.error("An error occurred: ", error.message);
+export {
+    default as WAudio
 }
+    from './audio';
+export {
+    default as Effect
+}
+    from './effect';
+export {
+    default as Shader
+}
+    from './effect/shader';

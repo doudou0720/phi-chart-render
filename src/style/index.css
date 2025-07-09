@@ -545,20 +545,6 @@ div.debug-value {
     display: none !important;
 }
 
-#progress-container {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    width: 300px;
-    max-height: 80vh;
-    overflow-y: auto;
-    background: rgba(0,0,0,0.7);
-    color: white;
-    padding: 10px;
-    z-index: 1000;
-    border-radius: 5px;
-    display: none;
-}
 
 .progress-item {
     margin-bottom: 10px;
