@@ -787,12 +787,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 ...[
                     {
                         name: 'MiSans',
-                        url: './src/style/fonts/MiSans-Regular.ttf',
+                        url: './assets/MiSans-Regular.ttf',
                         type: 'font'
                     },
                     {
                         name: 'A-OTF Shin Go Pr6N H',
-                        url: './src/style/fonts/A-OTF_Shin_Go_Pr6N_H.ttf',
+                        url: './assets/A-OTF_Shin_Go_Pr6N_H.ttf',
                         type: 'font'
                     }
                 ]
