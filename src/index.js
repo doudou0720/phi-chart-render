@@ -216,7 +216,7 @@ class ProgressTracker {
         progressElement.querySelector('.speed').textContent = '0B/s';
 
         this.container.appendChild(progressElement);
-        
+
         this.trackers[name] = {
             element: progressElement,
             startTime: Date.now(),
@@ -232,21 +232,21 @@ class ProgressTracker {
     updateProgress(name, loaded, total) {
         const tracker = this.trackers[name];
         if (!tracker) return;
-        
+
         // 如果是第一次更新，增加总数据量
         if (tracker.total === 0 && total > 0) {
             this.totaldata += total;
         }
-        
+
         tracker.total = total;
-        
+
         const now = Date.now();
         const elapsed = (now - tracker.lastTime) / 1000;
         const delta = loaded - tracker.lastLoaded;
-        
+
         // 更新总加载量
         this.loaddata += delta;
-        
+
         // 计算速度（至少0.5秒更新一次避免抖动）
         if (elapsed > 0.5) {
             tracker.speed = delta / elapsed;
@@ -260,7 +260,7 @@ class ProgressTracker {
         tracker.element.querySelector('.loaded').textContent = formatBytes(loaded);
         tracker.element.querySelector('.total').textContent = formatBytes(total);
         tracker.element.querySelector('.speed').textContent = `${formatBytes(tracker.speed)}/s`;
-        
+
         // 更新总进度
         this.updateTotalProgress();
     }
@@ -290,15 +290,15 @@ class ProgressTracker {
         if (tracker) {
             this.updateProgress(name, tracker.total, tracker.total);
             tracker.element.style.background = 'rgba(76, 175, 80, 0.2)';
-            // setTimeout(() => {
-                // tracker.element.remove();
-                // delete this.trackers[name];
 
-                // // 当所有进度条完成后隐藏容器
-                // if (Object.keys(this.trackers).length === 0) {
-                    // this.container.style.display = 'none';
-                // }
-            // }, 500);
+            // 收起 details，但不移除元素
+            setTimeout(() => {
+                const detailsElement = tracker.element.closest('details');
+                if (detailsElement) {
+                    detailsElement.open = false;
+                }
+            }, 500);
+
         }
     }
 
@@ -789,12 +789,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 ...[
                     {
                         name: 'MiSans',
-                        url: './src/style/fonts/MiSans.ttf',
+                        url: './src/style/fonts/MiSans-Regular.ttf',
                         type: 'font'
                     },
                     {
                         name: 'A-OTF Shin Go Pr6N H',
-                        url: './src/style/fonts/A-OTF-Shin-Go-Pr6N-H.ttf',
+                        url: './src/style/fonts/A-OTF_Shin_Go_Pr6N_H.ttf',
                         type: 'font'
                     }
                 ]
@@ -805,12 +805,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     try {
                         doms.loadingStatus.innerText = `Loading assets ...`;
                         // 添加文件到进度跟踪器
-                        progressTracker.addFile(resource.name, resource.url);
+                        // progressTracker.addFile(resource.name, resource.url);
                         // 获取文件内容
                         const res = await requestFile(
                             resource.url,
                             progressTracker,
-                            resource.name
+                            resource.name + '(' + resource.type + ')'
                         );
 
 
@@ -857,13 +857,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 try {
                                     const arrayBuffer = await res.arrayBuffer();
                                     // 创建字体对象
-                                    debugger;
+                                    // debugger;
                                     const fontFace = new FontFace(resource.name, arrayBuffer);
                                     // 添加到文档字体集
                                     document.fonts.add(fontFace);
                                     // 加载字体
-                                    await fontFace.load(null,30000);
-                                    URL.revokeObjectURL(fontURL);
+                                    await fontFace.load(null, 30000);
                                     console.log(`Font ${resource.name} loaded successfully`);
                                     doms.loadingStatus.innerText = `Loaded font ${resource.name} ...`;
                                 } catch (e) {
