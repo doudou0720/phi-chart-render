@@ -204,7 +204,7 @@ class ProgressTracker {
     }
 
     addFile(name, url) {
-        const element = this.template.content.cloneNode(true);
+        const element = this.template.cloneNode(true);
         const wrapper = document.createElement('div');
         wrapper.appendChild(element);
         const progressElement = wrapper.firstElementChild;
@@ -789,17 +789,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 ...[
                     {
                         name: 'MiSans',
-                        url: './src/style/fonts/MiSans.woff2',
+                        url: './src/style/fonts/MiSans.ttf',
                         type: 'font'
                     },
                     {
                         name: 'A-OTF Shin Go Pr6N H',
-                        url: './src/style/fonts/A-OTF-Shin-Go-Pr6N-H.woff2',
+                        url: './src/style/fonts/A-OTF-Shin-Go-Pr6N-H.ttf',
                         type: 'font'
                     }
                 ]
             ];
-            debugger;
             // 并发加载所有资源（每个文件独立处理）
             const resourceLoadPromises = allResources.map(resource =>
                 (async () => {
@@ -855,17 +854,22 @@ document.addEventListener('DOMContentLoaded', () => {
                                     resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
                                 break;
                             case 'font': {
-                                // 使用Blob创建字体
-                                const fontBlob = res;
-                                // 创建字体对象
-                                const fontFace = new FontFace(resource.name, `url(${URL.createObjectURL(fontBlob)})`);
-                                // 添加到文档字体集
-                                document.fonts.add(fontFace);
-                                // 加载字体
-                                await fontFace.load();
-                                // 释放Blob URL
-                                URL.revokeObjectURL(fontBlob);
-                                doms.loadingStatus.innerText = `Loaded font ${resource.name} ...`;
+                                try {
+                                    const arrayBuffer = await res.arrayBuffer();
+                                    // 创建字体对象
+                                    debugger;
+                                    const fontFace = new FontFace(resource.name, arrayBuffer);
+                                    // 添加到文档字体集
+                                    document.fonts.add(fontFace);
+                                    // 加载字体
+                                    await fontFace.load(null,30000);
+                                    URL.revokeObjectURL(fontURL);
+                                    console.log(`Font ${resource.name} loaded successfully`);
+                                    doms.loadingStatus.innerText = `Loaded font ${resource.name} ...`;
+                                } catch (e) {
+                                    console.error(`Failed to load font ${resource.name}:`, e);
+                                    doms.loadingStatus.innerText = `Failed to load font ${resource.name}: ${e.message}`;
+                                }
                                 break;
                             }
                         }
@@ -1676,6 +1680,13 @@ function PlayLikeYouNeverDidBefore(game, currentTime) {
     game.chart.music.speed = currentSpeed;
     game.chart.sprites.info.songName.text = game.chart.info.name + ' (x' + Math.round(currentSpeed * 100) / 100 + ')';
 }
+
+
+// 将全屏和游戏控制函数暴露到全局
+window.fullscreen = fullscreen;
+window.pauseGame = pauseGame;
+window.restartGame = restartGame;
+window.exitGame = exitGame;
 
 export {
     loadChartFiles
