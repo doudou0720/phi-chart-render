@@ -247,19 +247,17 @@ class ProgressTracker {
         // 更新总加载量
         this.loaddata += delta;
 
-        // 计算速度（至少0.5秒更新一次避免抖动）
-        if (elapsed > 0.5) {
-            tracker.speed = delta / elapsed;
-            tracker.lastLoaded = loaded;
-            tracker.lastTime = now;
-        }
+        // 计算速度
+        tracker.speed = delta / elapsed;
+        tracker.lastLoaded = loaded;
+        tracker.lastTime = now;
 
         // 更新UI
         const progress = total > 0 ? (loaded / total * 100) : 0;
         tracker.element.querySelector('.progress').style.width = `${progress}%`;
         tracker.element.querySelector('.loaded').textContent = formatBytes(loaded);
         tracker.element.querySelector('.total').textContent = formatBytes(total);
-        tracker.element.querySelector('.speed').textContent = `${formatBytes(tracker.speed)}/s`;
+        tracker.element.querySelector('.speed').textContent = `${formatBytes(isNaN(tracker.speed) ? 0 : tracker.speed)}/s`;
 
         // 更新总进度
         this.updateTotalProgress();
