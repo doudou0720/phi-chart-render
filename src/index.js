@@ -45,12 +45,13 @@ const fonts = {
 }
 
 function toggleSkipConfigElements(show) {
+    // 兼容性问题，暂时注释
     const fileSelect = document.querySelector('.file-select');
     const children = fileSelect.children;
 
     for (let i = 0; i < children.length; i++) {
         const child = children[i];
-        if (child.id !== 'loading-status' && child.id !== 'file-read-progress') {
+        if (!child.classList.contains('none-hide')) {
             if (show) {
                 child.classList.remove('skip-config-hide');
             } else {
@@ -127,8 +128,11 @@ const doms = {
     errorWindow: {
         window: document.querySelector('div.error-window'),
         closeBtn: document.querySelector('div.error-window button.close'),
-        content: document.querySelector('div.error-window code.content')
-    }
+        content: document.querySelector('div.error-window code.content'),
+    },
+    progressContainer: document.querySelector('#progress-container'),
+    progressTemplate: document.querySelector('#progress-template'),
+    progressTotal: document.querySelector('#progress-total')
 };
 
 const files = {
@@ -161,8 +165,162 @@ if (import.meta.env.MODE === 'development') {
     window.assets = assets;
     window.currentFile = currentFile;
 }
+// 在资源加载前创建进度条容器
+if (!doms.progressContainer) {
+    const container = document.createElement('div');
+    container.id = 'progress-container';
+    container.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        width: 300px;
+        max-height: 80vh;
+        overflow-y: auto;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 10px;
+        z-index: 1000;
+        border-radius: 5px;
+        display: none;
+    `;
+    document.body.appendChild(container);
+    doms.progressContainer = container;
+}
 
-doms.chartPackFile.addEventListener('input', function() {
+// 进度跟踪器类
+class ProgressTracker {
+    constructor() {
+        this.trackers = {};
+        this.container = doms.progressContainer;
+        this.template = doms.progressTemplate;
+        this.total = {
+            element: doms.progressTotal,
+            lastLoaded: 0,
+            lastTime: Date.now(),
+            speed: 0
+        };
+        this.totaldata = 0;
+        this.loaddata = 0;
+    }
+
+    addFile(name, url) {
+        const element = this.template.cloneNode(true);
+        const wrapper = document.createElement('div');
+        wrapper.appendChild(element);
+        const progressElement = wrapper.firstElementChild;
+        progressElement.id = `progress-${name}`;
+
+        progressElement.querySelector('.file-name').textContent = name;
+        progressElement.querySelector('.loaded').textContent = '0B';
+        progressElement.querySelector('.total').textContent = '0B';
+        progressElement.querySelector('.speed').textContent = '0B/s';
+
+        this.container.appendChild(progressElement);
+
+        this.trackers[name] = {
+            element: progressElement,
+            startTime: Date.now(),
+            lastLoaded: 0,
+            lastTime: Date.now(),
+            speed: 0,
+            total: 0
+        };
+
+        return this.trackers[name];
+    }
+
+    updateProgress(name, loaded, total) {
+        const tracker = this.trackers[name];
+        if (!tracker) return;
+
+        // 如果是第一次更新，增加总数据量
+        if (tracker.total === 0 && total > 0) {
+            this.totaldata += total;
+        }
+
+        tracker.total = total;
+
+        const now = Date.now();
+        const elapsed = (now - tracker.lastTime) / 1000;
+        const delta = loaded - tracker.lastLoaded;
+
+        // 更新总加载量
+        this.loaddata += delta;
+
+        // 计算速度
+        tracker.speed = delta / elapsed;
+        tracker.lastLoaded = loaded;
+        tracker.lastTime = now;
+
+        // 更新UI
+        const progress = total > 0 ? (loaded / total * 100) : 0;
+        tracker.element.querySelector('.progress').style.width = `${progress}%`;
+        tracker.element.querySelector('.loaded').textContent = formatBytes(loaded);
+        tracker.element.querySelector('.total').textContent = formatBytes(total);
+        tracker.element.querySelector('.speed').textContent = `${formatBytes(isNaN(tracker.speed) ? 0 : tracker.speed)}/s`;
+
+        // 更新总进度
+        this.updateTotalProgress();
+    }
+
+    updateTotalProgress() {
+        const now = Date.now();
+        const elapsed = (now - this.total.lastTime) / 1000;
+        const delta = this.loaddata - this.total.lastLoaded;
+
+        // 计算速度（至少0.5秒更新一次避免抖动）
+        if (elapsed > 0.5) {
+            this.total.speed = delta / elapsed;
+            this.total.lastLoaded = this.loaddata;
+            this.total.lastTime = now;
+        }
+
+        // 更新UI
+        const progress = this.totaldata > 0 ? (this.loaddata / this.totaldata * 100) : 0;
+        this.total.element.querySelector('.progress').style.width = `${progress}%`;
+        this.total.element.querySelector('.loaded').textContent = formatBytes(this.loaddata);
+        this.total.element.querySelector('.total').textContent = formatBytes(this.totaldata);
+        this.total.element.querySelector('.speed').textContent = `${formatBytes(this.total.speed)}/s`;
+    }
+
+    complete(name) {
+        const tracker = this.trackers[name];
+        if (tracker) {
+            this.updateProgress(name, tracker.total, tracker.total);
+            tracker.element.style.background = 'rgba(76, 175, 80, 0.2)';
+
+            // 收起 details，但不移除元素
+            setTimeout(() => {
+                const detailsElement = tracker.element.closest('details');
+                if (detailsElement) {
+                    detailsElement.open = false;
+                }
+            }, 500);
+
+        }
+    }
+
+    error(name) {
+        const tracker = this.trackers[name];
+        if (tracker) {
+            tracker.element.style.background = 'rgba(244, 67, 54, 0.2)';
+            tracker.element.querySelector('.progress').style.background = '#f44336';
+        }
+    }
+}
+
+// 辅助函数：格式化字节
+function formatBytes(bytes, decimals = 2) {
+    if (bytes === 0) return '0B';
+
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + sizes[i];
+}
+doms.chartPackFile.addEventListener('input', function () {
     if (this.files.length <= 0) return;
     console.log(this.files);
     loadChartFiles(this.files);
@@ -201,12 +359,12 @@ document.getElementById('chart-url-input').addEventListener('keypress', (e) => {
         document.getElementById('load-url-btn').click();
     }
 });
-doms.skinPackFile.addEventListener('input', function() {
+doms.skinPackFile.addEventListener('input', function () {
     if (this.files.length <= 0 || !this.files[0]) return;
 
     JSZip.loadAsync(this.files[0], {
-            createFolders: false
-        })
+        createFolders: false
+    })
         .then(async (result) => {
             let loadSuccessCount = 0;
 
@@ -219,16 +377,16 @@ doms.skinPackFile.addEventListener('input', function() {
                 let newFile = new File(
                     [(await file.async('blob'))],
                     name, {
-                        type: '',
-                        lastModified: file.date
-                    }
+                    type: '',
+                    lastModified: file.date
+                }
                 );
 
                 newFile.format = fileFormat;
 
                 (await (new Promise(() => {
-                        throw new Error('Just make a promise, plz ignore me');
-                    }))
+                    throw new Error('Just make a promise, plz ignore me');
+                }))
                     .catch(async () => {
                         let imgBitmap = await createImageBitmap(newFile);
                         let texture = await Texture.from(imgBitmap);
@@ -291,7 +449,7 @@ doms.skinPackFile.addEventListener('input', function() {
         });
 });
 
-doms.file.chart.addEventListener('input', function() {
+doms.file.chart.addEventListener('input', function () {
     currentFile.chart = files.charts[this.value];
 
     if (files.infos && files.infos.length > 0) {
@@ -312,11 +470,11 @@ doms.file.chart.addEventListener('input', function() {
     doms.file.bg.dispatchEvent(new Event('input'));
 });
 
-doms.file.music.addEventListener('input', function() {
+doms.file.music.addEventListener('input', function () {
     currentFile.music = files.musics[this.value];
 });
 
-doms.file.bg.addEventListener('input', function() {
+doms.file.bg.addEventListener('input', function () {
     currentFile.bg = files.images[this.value];
 });
 
@@ -452,335 +610,510 @@ doms.errorWindow.closeBtn.addEventListener('click', () => {
 window.addEventListener('resize', () => {
     calcHeightPercent();
 });
-window.addEventListener('load', async () => {
-    const shouldSkipConfig = getSearchString('skip_config') === 'true';
-    const urlParams = new URLSearchParams(window.location.search);
-    const chartUrlParam = urlParams.get('chart_url');
-    // 获取URL输入框DOM
-    const chartUrlInput = document.getElementById('chart-url-input');
+document.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('load', async () => {
+        try {
+            const progressTracker = new ProgressTracker();
+            const shouldSkipConfig = getSearchString('skip_config') === 'true';
+            const urlParams = new URLSearchParams(window.location.search);
+            const chartUrlParam = urlParams.get('chart_url');
+            // 获取URL输入框DOM
+            const chartUrlInput = document.getElementById('chart-url-input');
 
-    // 隐藏除进度外的元素
-    toggleSkipConfigElements(false);
+            // 隐藏除进度外的元素
+            toggleSkipConfigElements(false);
 
 
-    // 并发加载所有字体
-    const fontLoadPromises = Object.keys(fonts).map(name => 
-        (async () => {
-            try {
-                doms.loadingStatus.innerText = `Loading font ${name} ...`;
-                await fonts[name].load(null, 30000);
-            } catch (e) {
-                console.error(e);
-            }
-        })()
-    );
+            // 定义所有需要加载的资源
+            const allResources = [
+                // 图片资源
+                ...[{
+                    name: 'tap',
+                    url: './assets/Tap.png',
+                    type: 'image'
+                },
+                {
+                    name: 'tapHL',
+                    url: './assets/TapHL.png',
+                    type: 'image'
+                },
+                {
+                    name: 'drag',
+                    url: './assets/Drag.png',
+                    type: 'image'
+                },
+                {
+                    name: 'dragHL',
+                    url: './assets/DragHL.png',
+                    type: 'image'
+                },
+                {
+                    name: 'flick',
+                    url: './assets/Flick.png',
+                    type: 'image'
+                },
+                {
+                    name: 'flickHL',
+                    url: './assets/FlickHL.png',
+                    type: 'image'
+                },
+                {
+                    name: 'holdHead',
+                    url: './assets/HoldHead.png',
+                    type: 'image'
+                },
+                {
+                    name: 'holdHeadHL',
+                    url: './assets/HoldHeadHL.png',
+                    type: 'image'
+                },
+                {
+                    name: 'holdBody',
+                    url: './assets/Hold.png',
+                    type: 'image'
+                },
+                {
+                    name: 'holdBodyHL',
+                    url: './assets/HoldHL.png',
+                    type: 'image'
+                },
+                {
+                    name: 'holdEnd',
+                    url: './assets/HoldEnd.png',
+                    type: 'image'
+                },
+                {
+                    name: 'judgeline',
+                    url: './assets/JudgeLine.png',
+                    type: 'image'
+                },
+                {
+                    name: 'clickRaw',
+                    url: './assets/clickRaw128.png',
+                    type: 'image'
+                },
+                {
+                    name: 'pauseButton',
+                    url: './assets/pauseButton.png',
+                    type: 'image'
+                }
+                ],
+                // 音效资源
+                ...[{
+                    name: 'tap',
+                    url: './assets/sounds/Hitsound-Tap.ogg',
+                    type: 'sound',
+                    options: {
+                        loop: false,
+                        noTimer: true
+                    }
+                },
+                {
+                    name: 'drag',
+                    url: './assets/sounds/Hitsound-Drag.ogg',
+                    type: 'sound',
+                    options: {
+                        loop: false,
+                        noTimer: true
+                    }
+                },
+                {
+                    name: 'flick',
+                    url: './assets/sounds/Hitsound-Flick.ogg',
+                    type: 'sound',
+                    options: {
+                        loop: false,
+                        noTimer: true
+                    }
+                }
+                ],
+                // 结果音乐资源
+                ...[{
+                    name: 'ez',
+                    url: './assets/sounds/result/ez.ogg',
+                    type: 'resultMusic',
+                    options: {
+                        loop: true,
+                        noTimer: true
+                    }
+                },
+                {
+                    name: 'hd',
+                    url: './assets/sounds/result/hd.ogg',
+                    type: 'resultMusic',
+                    options: {
+                        loop: true,
+                        noTimer: true
+                    }
+                },
+                {
+                    name: 'in',
+                    url: './assets/sounds/result/in.ogg',
+                    type: 'resultMusic',
+                    options: {
+                        loop: true,
+                        noTimer: true
+                    }
+                },
+                {
+                    name: 'at',
+                    url: './assets/sounds/result/at.ogg',
+                    type: 'resultMusic',
+                    options: {
+                        loop: true,
+                        noTimer: true
+                    }
+                },
+                {
+                    name: 'sp',
+                    url: './assets/sounds/result/sp.ogg',
+                    type: 'resultMusic',
+                    options: {
+                        loop: true,
+                        noTimer: true
+                    }
+                },
+                {
+                    name: 'spGlitch',
+                    url: './assets/sounds/result/sp_glitch.ogg',
+                    type: 'resultMusic',
+                    options: {
+                        loop: true,
+                        noTimer: true
+                    }
+                }
+                ],
+                //字体文件资源
+                ...[
+                    {
+                        name: 'MiSans',
+                        url: './src/style/fonts/MiSans-Regular.ttf',
+                        type: 'font'
+                    },
+                    {
+                        name: 'A-OTF Shin Go Pr6N H',
+                        url: './src/style/fonts/A-OTF_Shin_Go_Pr6N_H.ttf',
+                        type: 'font'
+                    }
+                ]
+            ];
+            // 并发加载所有资源（每个文件独立处理）
+            const resourceLoadPromises = allResources.map(resource =>
+                (async () => {
+                    try {
+                        doms.loadingStatus.innerText = `Loading assets ...`;
+                        // 添加文件到进度跟踪器
+                        // progressTracker.addFile(resource.name, resource.url);
+                        // 获取文件内容
+                        const res = await requestFile(
+                            resource.url,
+                            progressTracker,
+                            resource.name + '(' + resource.type + ')'
+                        );
 
-    // 定义所有需要加载的资源
-    const allResources = [
-        // 图片资源
-        ...[
-            { name: 'tap', url: './assets/Tap.png', type: 'image' },
-            { name: 'tapHL', url: './assets/TapHL.png', type: 'image' },
-            { name: 'drag', url: './assets/Drag.png', type: 'image' },
-            { name: 'dragHL', url: './assets/DragHL.png', type: 'image' },
-            { name: 'flick', url: './assets/Flick.png', type: 'image' },
-            { name: 'flickHL', url: './assets/FlickHL.png', type: 'image' },
-            { name: 'holdHead', url: './assets/HoldHead.png', type: 'image' },
-            { name: 'holdHeadHL', url: './assets/HoldHeadHL.png', type: 'image' },
-            { name: 'holdBody', url: './assets/Hold.png', type: 'image' },
-            { name: 'holdBodyHL', url: './assets/HoldHL.png', type: 'image' },
-            { name: 'holdEnd', url: './assets/HoldEnd.png', type: 'image' },
-            { name: 'judgeline', url: './assets/JudgeLine.png', type: 'image' },
-            { name: 'clickRaw', url: './assets/clickRaw128.png', type: 'image' },
-            { name: 'pauseButton', url: './assets/pauseButton.png', type: 'image' }
-        ],
-        // 音效资源
-        ...[
-            { name: 'tap', url: './assets/sounds/Hitsound-Tap.ogg', type: 'sound', options: { loop: false, noTimer: true } },
-            { name: 'drag', url: './assets/sounds/Hitsound-Drag.ogg', type: 'sound', options: { loop: false, noTimer: true } },
-            { name: 'flick', url: './assets/sounds/Hitsound-Flick.ogg', type: 'sound', options: { loop: false, noTimer: true } }
-        ],
-        // 结果音乐资源
-        ...[
-            { name: 'ez', url: './assets/sounds/result/ez.ogg', type: 'resultMusic', options: { loop: true, noTimer: true } },
-            { name: 'hd', url: './assets/sounds/result/hd.ogg', type: 'resultMusic', options: { loop: true, noTimer: true } },
-            { name: 'in', url: './assets/sounds/result/in.ogg', type: 'resultMusic', options: { loop: true, noTimer: true } },
-            { name: 'at', url: './assets/sounds/result/at.ogg', type: 'resultMusic', options: { loop: true, noTimer: true } },
-            { name: 'sp', url: './assets/sounds/result/sp.ogg', type: 'resultMusic', options: { loop: true, noTimer: true } },
-            { name: 'spGlitch', url: './assets/sounds/result/sp_glitch.ogg', type: 'resultMusic', options: { loop: true, noTimer: true } }
-        ]
-    ];
 
-    // 并发加载所有资源（每个文件独立处理）
-    const resourceLoadPromises = allResources.map(resource => 
-        (async () => {
-            try {
-                doms.loadingStatus.innerText = `Loading assets ...`;
-                
-                // 获取文件内容
-                const res = await requestFile(resource.url);
-                
-                // 根据资源类型处理
-                switch (resource.type) {
-                    case 'image':
-                        const imgBitmap = await createImageBitmap(res);
-                        const texture = await Texture.from(imgBitmap);
-                        Texture.addToCache(texture, resource.name);
-                        assets.textures[resource.name] = texture;
-                        
-                        // 特殊处理 clickRaw
-                        if (resource.name === 'clickRaw') {
-                            const _clickTextures = [];
-                            for (let i = 0; i < Math.floor(texture.height / texture.width); i++) {
-                                const rectangle = new Rectangle(0, i * texture.width, texture.width, texture.width);
-                                const subTexture = new Texture(texture.baseTexture, rectangle);
-                                Texture.addToCache(subTexture, `${resource.name}${i}`);
-                                subTexture.defaultAnchor.set(0.5);
-                                _clickTextures.push(subTexture);
+                        // 根据资源类型处理
+                        switch (resource.type) {
+                            case 'image':
+                                const imgBitmap = await createImageBitmap(res);
+                                const texture = await Texture.from(imgBitmap);
+                                Texture.addToCache(texture, resource.name);
+                                assets.textures[resource.name] = texture;
+
+                                // 特殊处理 clickRaw
+                                if (resource.name === 'clickRaw') {
+                                    const _clickTextures = [];
+                                    for (let i = 0; i < Math.floor(texture.height / texture.width); i++) {
+                                        const rectangle = new Rectangle(0, i * texture.width, texture.width, texture.width);
+                                        const subTexture = new Texture(texture.baseTexture, rectangle);
+                                        Texture.addToCache(subTexture, `${resource.name}${i}`);
+                                        subTexture.defaultAnchor.set(0.5);
+                                        _clickTextures.push(subTexture);
+                                    }
+                                    assets.textures[resource.name] = _clickTextures;
+                                }
+                                doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' :
+                                    resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
+                                break;
+
+                            case 'sound':
+                                const sound = await loadAudio(res, resource.options.loop, resource.options.noTimer);
+                                if (!assets.sounds) assets.sounds = {};
+                                assets.sounds[resource.name] = sound;
+                                doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' :
+                                    resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
+                                break;
+
+                            case 'resultMusic':
+                                const resultMusic = await loadAudio(res, resource.options.loop, resource.options.noTimer);
+                                if (!assets.sounds.result) assets.sounds.result = {};
+                                assets.sounds.result[resource.name] = resultMusic;
+                                doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' :
+                                    resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
+                                break;
+                            case 'font': {
+                                try {
+                                    const arrayBuffer = await res.arrayBuffer();
+                                    // 创建字体对象
+                                    // debugger;
+                                    const fontFace = new FontFace(resource.name, arrayBuffer);
+                                    // 添加到文档字体集
+                                    document.fonts.add(fontFace);
+                                    // 加载字体
+                                    await fontFace.load(null, 30000);
+                                    console.log(`Font ${resource.name} loaded successfully`);
+                                    doms.loadingStatus.innerText = `Loaded font ${resource.name} ...`;
+                                } catch (e) {
+                                    console.error(`Failed to load font ${resource.name}:`, e);
+                                    doms.loadingStatus.innerText = `Failed to load font ${resource.name}: ${e.message}`;
+                                }
+                                break;
                             }
-                            assets.textures[resource.name] = _clickTextures;
                         }
-                        doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' : 
-                            resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
-                        break;
-                        
-                    case 'sound':
-                        const sound = await loadAudio(res, resource.options.loop, resource.options.noTimer);
-                        if (!assets.sounds) assets.sounds = {};
-                        assets.sounds[resource.name] = sound;
-                        doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' : 
-                            resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
-                        break;
-                        
-                    case 'resultMusic':
-                        const resultMusic = await loadAudio(res, resource.options.loop, resource.options.noTimer);
-                        if (!assets.sounds.result) assets.sounds.result = {};
-                        assets.sounds.result[resource.name] = resultMusic;
-                        doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' : 
-                            resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
-                        break;
-                    
-                }
-            } catch (e) {
-                console.error(`Failed getting resource ${resource.name}:`, e);
-            }
-        })()
-    );
-    
-    await Promise.all(resourceLoadPromises);
-    document.body.classList.add('font-loaded');
-    
-    doms.loadingStatus.innerText = 'All done!';
-    doms.chartPackFileReadProgress.innerText = 'No chart pack file selected';
-    doms.chartPackFile.disabled = false;
-    doms.skinPackFile.disabled = false;
+                    } catch (e) {
+                        console.error(`Failed getting resource ${resource.name}:`, e);
+                    }
+                })()
+            );
 
-    calcHeightPercent();
-    // 新增：解析URL参数并自动加载
+            await Promise.all(resourceLoadPromises);
+
+            document.body.classList.add('font-loaded');
+
+            doms.loadingStatus.innerText = 'All done!';
+            doms.chartPackFileReadProgress.innerText = 'No chart pack file selected';
+            doms.chartPackFile.disabled = false;
+            doms.skinPackFile.disabled = false;
+
+            calcHeightPercent();
+            // 新增：解析URL参数并自动加载
 
 
 
-    // 新增：加载完成检查函数
-    const waitForFilesLoaded = () => {
-        return new Promise(resolve => {
-            const checkInterval = setInterval(() => {
-                if (doms.file.chart.childNodes.length > 0 &&
-                    doms.file.music.childNodes.length > 0) {
-                    clearInterval(checkInterval);
-                    resolve();
-                }
-            }, 100);
-        });
-    };
-
-    if (chartUrlParam) {
-        try {
-            let chartUrl;
-
-            // 尝试作为base64解码
-            try {
-                chartUrl = atob(chartUrlParam);
-                // 验证解码后是否是有效URL
-                if (!isValidUrl(chartUrl)) {
-                    throw new Error('Decoded string is not a valid URL');
-                }
-            } catch (e) {
-                // 如果不是base64，直接使用原始值
-                chartUrl = chartUrlParam;
-            }
-
-            // 填入输入框
-            chartUrlInput.value = chartUrl;
-
-            // 显示加载状态
-            doms.chartPackFileReadProgress.innerText = 'Loading chart from URL...';
-
-            // 下载并加载图表文件
-            const response = await fetch(chartUrl);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-            const blob = await response.blob();
-            const filename = chartUrl.split('/').pop() || 'chart.zip';
-            const file = new File([blob], filename, {
-                type: blob.type,
-                lastModified: new Date().getTime()
-            });
-
-            // 加载图表文件
-            await loadChartFiles([file]);
-
-            // 等待文件加载完成
-            await waitForFilesLoaded();
-
-            // 更新状态
-            doms.chartPackFileReadProgress.innerText = `Loaded chart from ${chartUrl}`;
-            // 检查是否需要跳过配置直接开始
-            if (shouldSkipConfig) {
-                console.log('skip_config enabled, starting game automatically');
-
-                // 确保文件选择完成
-                if (doms.file.chart.childNodes.length > 0 &&
-                    doms.file.music.childNodes.length > 0) {
-
-                    // 自动选择第一个图表和音乐
-                    doms.file.chart.value = doms.file.chart.options[0].value;
-                    doms.file.music.value = doms.file.music.options[0].value;
-
-                    // 触发输入事件更新选择
-                    doms.file.chart.dispatchEvent(new Event('input'));
-                    doms.file.music.dispatchEvent(new Event('input'));
-
-                    // 添加短暂延迟确保UI更新
-                    setTimeout(() => {
-                        // 模拟点击开始按钮
-                        toggleSkipConfigElements(true);
-                        doms.startBtn.click();
-
-                        // 自动切换到全屏
-                        if (document.documentElement.requestFullscreen) {
-                            document.getElementById('fullscreen').click().catch(e => console.error('Fullscreen error:', e));
+            // 新增：加载完成检查函数
+            const waitForFilesLoaded = () => {
+                return new Promise(resolve => {
+                    const checkInterval = setInterval(() => {
+                        if (doms.file.chart.childNodes.length > 0 &&
+                            doms.file.music.childNodes.length > 0) {
+                            clearInterval(checkInterval);
+                            resolve();
                         }
-                    }, 500);
-                }
-            }
-        } catch (e) {
-            doms.chartPackFileReadProgress.innerText = 'Failed to load from URL: ' + e.message;
-            console.error('URL load error:', e);
-        }
-    }
-
-    // 添加URL加载按钮事件
-    document.getElementById('load-url-btn').addEventListener('click', async () => {
-        const url = chartUrlInput.value;
-        if (!url) {
-            alert('Please enter a URL');
-            return;
-        }
-
-        try {
-            doms.chartPackFileReadProgress.innerText = 'Downloading file from URL...';
-
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-            const blob = await response.blob();
-            const filename = url.split('/').pop() || 'chart.zip';
-            const file = new File([blob], filename, {
-                type: blob.type,
-                lastModified: new Date().getTime()
-            });
-
-            loadChartFiles([file]);
-        } catch (e) {
-            doms.chartPackFileReadProgress.innerText = 'Failed to download: ' + e.message;
-            console.error('URL load error:', e);
-        }
-    });
-    toggleSkipConfigElements(true);
-    // 支持按回车键触发加载
-    chartUrlInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            document.getElementById('load-url-btn').click();
-        }
-    });
-
-    // URL验证辅助函数
-    function isValidUrl(string) {
-        try {
-            new URL(string);
-            return true;
-        } catch (_) {
-            return false;
-        }
-    }
-    doms.settings.testInputDelay.testTimes = 0;
-    doms.settings.testInputDelay.testDelays = 0;
-
-    doms.settings.testInputDelay.addEventListener('touchstart', (e) => {
-        let getTime = () => performance ? performance.now() : Date.now();
-        doms.settings.testInputDelay.testTimes += 1;
-        doms.settings.testInputDelay.testDelays += (getTime() - e.timeStamp);
-        doms.settings.testInputDelay.innerText = 'Tap on this button to test input delay...' + (Math.round((doms.settings.testInputDelay.testDelays / doms.settings.testInputDelay.testTimes) * 1000) / 1000) + 'ms';
-    });
-
-    doms.playResult.scoreBar.addEventListener('click', () => doms.playResult.accBar.classList.toggle('show'));
-
-    {
-        let listTabs = document.querySelectorAll('div.tab div.bar > *');
-        let listTabContents = document.querySelectorAll('div.tab div.content > *[id^="tab-"]');
-
-        for (const tab of listTabs) {
-            tab.addEventListener('click', switchTab);
-        }
-
-        for (let i = 0; i < listTabContents.length; i++) {
-            let content = listTabContents[i];
-            if (i === 0) content.style.display = 'block';
-            else content.style.display = 'none';
-        }
-    }
-
-    if (import.meta.env.MODE === 'production') {
-        fetch('https://www.googletagmanager.com/gtag/js?id=G-PW9YT2TVFV')
-            .then(res => res.text())
-            .then(res => {
-                eval(res);
-                window.dataLayer = window.dataLayer || [];
-                window.gtag = function() {
-                    dataLayer.push(arguments);
-                };
-                gtag('js', new Date());
-                gtag('config', 'G-PW9YT2TVFV');
-            })
-            .catch(e => {
-                console.error('Failed to load Google Analytics');
-                console.error(e);
-            });
-    }
-
-    initConsoleEasterEgg();
-
-    function requestFile(url) {
-        return new Promise((res, rej) => {
-            let xhr = new XMLHttpRequest();
-
-            xhr.responseType = 'blob';
-
-            xhr.onreadystatechange = () => {
-                if (xhr.readyState === 4 && xhr.status === 200) {
-                    res(xhr.response);
-                }
+                    }, 100);
+                });
             };
 
-            xhr.onerror = (e) => {
-                rej(e);
-            };
+            if (chartUrlParam) {
+                try {
+                    let chartUrl;
 
-            xhr.open('GET', url);
-            xhr.send();
-        });
-    }
+                    // 尝试作为base64解码
+                    try {
+                        chartUrl = atob(chartUrlParam);
+                        // 验证解码后是否是有效URL
+                        if (!isValidUrl(chartUrl)) {
+                            throw new Error('Decoded string is not a valid URL');
+                        }
+                    } catch (e) {
+                        // 如果不是base64，直接使用原始值
+                        chartUrl = chartUrlParam;
+                    }
+
+                    // 填入输入框
+                    chartUrlInput.value = chartUrl;
+
+                    // 显示加载状态
+                    doms.chartPackFileReadProgress.innerText = 'Loading chart from URL...';
+
+                    // 下载并加载图表文件
+                    const response = await fetch(chartUrl);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                    const blob = await response.blob();
+                    const filename = chartUrl.split('/').pop() || 'chart.zip';
+                    const file = new File([blob], filename, {
+                        type: blob.type,
+                        lastModified: new Date().getTime()
+                    });
+
+                    // 加载图表文件
+                    await loadChartFiles([file]);
+
+                    // 等待文件加载完成
+                    await waitForFilesLoaded();
+
+                    // 更新状态
+                    doms.chartPackFileReadProgress.innerText = `Loaded chart from ${chartUrl}`;
+                    // 检查是否需要跳过配置直接开始
+                    if (shouldSkipConfig) {
+                        console.log('skip_config enabled, starting game automatically');
+
+                        // 确保文件选择完成
+                        if (doms.file.chart.childNodes.length > 0 &&
+                            doms.file.music.childNodes.length > 0) {
+
+                            // 自动选择第一个图表和音乐
+                            doms.file.chart.value = doms.file.chart.options[0].value;
+                            doms.file.music.value = doms.file.music.options[0].value;
+
+                            // 触发输入事件更新选择
+                            doms.file.chart.dispatchEvent(new Event('input'));
+                            doms.file.music.dispatchEvent(new Event('input'));
+
+                            // 添加短暂延迟确保UI更新
+                            setTimeout(() => {
+                                // 模拟点击开始按钮
+                                toggleSkipConfigElements(true);
+                                doms.startBtn.click();
+
+                                // 自动切换到全屏
+                                if (document.documentElement.requestFullscreen) {
+                                    document.getElementById('fullscreen').click().catch(e => console.error('Fullscreen error:', e));
+                                }
+                            }, 500);
+                        }
+                    }
+                } catch (e) {
+                    doms.chartPackFileReadProgress.innerText = 'Failed to load from URL: ' + e.message;
+                    console.error('URL load error:', e);
+                }
+            }
+
+
+
+            // 添加URL加载按钮事件
+            document.getElementById('load-url-btn').addEventListener('click', async () => {
+                const url = chartUrlInput.value;
+                if (!url) {
+                    alert('Please enter a URL');
+                    return;
+                }
+
+                try {
+                    doms.chartPackFileReadProgress.innerText = 'Downloading file from URL...';
+
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                    const blob = await response.blob();
+                    const filename = url.split('/').pop() || 'chart.zip';
+                    const file = new File([blob], filename, {
+                        type: blob.type,
+                        lastModified: new Date().getTime()
+                    });
+
+                    loadChartFiles([file]);
+                } catch (e) {
+                    doms.chartPackFileReadProgress.innerText = 'Failed to download: ' + e.message;
+                    console.error('URL load error:', e);
+                }
+            });
+            toggleSkipConfigElements(true);
+            // 支持按回车键触发加载
+            chartUrlInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('load-url-btn').click();
+                }
+            });
+
+
+            // URL验证辅助函数
+            function isValidUrl(string) {
+                try {
+                    new URL(string);
+                    return true;
+                } catch (_) {
+                    return false;
+                }
+            }
+            doms.settings.testInputDelay.testTimes = 0;
+            doms.settings.testInputDelay.testDelays = 0;
+
+            doms.settings.testInputDelay.addEventListener('touchstart', (e) => {
+                let getTime = () => performance ? performance.now() : Date.now();
+                doms.settings.testInputDelay.testTimes += 1;
+                doms.settings.testInputDelay.testDelays += (getTime() - e.timeStamp);
+                doms.settings.testInputDelay.innerText = 'Tap on this button to test input delay...' + (Math.round((doms.settings.testInputDelay.testDelays / doms.settings.testInputDelay.testTimes) * 1000) / 1000) + 'ms';
+            });
+
+            doms.playResult.scoreBar.addEventListener('click', () => doms.playResult.accBar.classList.toggle('show'));
+
+            {
+                let listTabs = document.querySelectorAll('div.tab div.bar > *');
+                let listTabContents = document.querySelectorAll('div.tab div.content > *[id^="tab-"]');
+
+                for (const tab of listTabs) {
+                    tab.addEventListener('click', switchTab);
+                }
+
+                for (let i = 0; i < listTabContents.length; i++) {
+                    let content = listTabContents[i];
+                    if (i === 0) content.style.display = 'block';
+                    else content.style.display = 'none';
+                }
+            }
+
+            if (import.meta.env.MODE === 'production') {
+                fetch('https://www.googletagmanager.com/gtag/js?id=G-PW9YT2TVFV')
+                    .then(res => res.text())
+                    .then(res => {
+                        eval(res);
+                        window.dataLayer = window.dataLayer || [];
+                        window.gtag = function () {
+                            dataLayer.push(arguments);
+                        };
+                        gtag('js', new Date());
+                        gtag('config', 'G-PW9YT2TVFV');
+                    })
+                    .catch(e => {
+                        console.error('Failed to load Google Analytics');
+                        console.error(e);
+                    });
+            }
+
+            initConsoleEasterEgg();
+
+            // 修改 requestFile 函数以支持进度跟踪
+            function requestFile(url, progressTracker, name) {
+                return new Promise((res, rej) => {
+                    let xhr = new XMLHttpRequest();
+                    xhr.responseType = 'blob';
+
+                    // 添加进度跟踪
+                    progressTracker.addFile(name, url);
+
+                    xhr.onprogress = (event) => {
+                        if (event.lengthComputable) {
+                            progressTracker.updateProgress(name, event.loaded, event.total);
+                        }
+                    };
+
+                    xhr.onload = () => {
+                        if (xhr.status === 200) {
+                            progressTracker.complete(name);
+                            res(xhr.response);
+                        } else {
+                            progressTracker.error(name);
+                            rej(new Error(`HTTP error! status: ${xhr.status}`));
+                        }
+                    };
+
+                    xhr.onerror = (e) => {
+                        progressTracker.error(name);
+                        rej(e);
+                    };
+
+                    xhr.open('GET', url);
+                    xhr.send();
+                });
+            }
+        } catch (error) {
+            alert(error.message);
+        }
+    });
+
 });
+
 
 function readArrayBuffer(file) {
     return new Promise((res, rej) => {
@@ -1201,9 +1534,9 @@ async function loadChartFiles(_files) {
                             let newFile = new File(
                                 [await zipFile.async('blob')],
                                 name, {
-                                    type: '',
-                                    lastModified: zipFile.date
-                                }
+                                type: '',
+                                lastModified: zipFile.date
+                            }
                             );
                             fileList.push(newFile);
                         }
@@ -1293,7 +1626,7 @@ async function initConsoleEasterEgg() {
     try {
         let url = await getImageBase64('./icons/64.png');
         console.log('%c ', 'padding:32px;background:url(' + url + ') center center no-repeat;');
-    } catch (e) {}
+    } catch (e) { }
 
     console.log('%cphi-chart-render%c' + GIT_VERSION, 'padding:8px;background-color:#1C1C1C;color:#FFF', 'padding:8px;background-color:#1E90FF;color:#FFF;');
 
@@ -1345,6 +1678,13 @@ function PlayLikeYouNeverDidBefore(game, currentTime) {
     game.chart.sprites.info.songName.text = game.chart.info.name + ' (x' + Math.round(currentSpeed * 100) / 100 + ')';
 }
 
+
+// 将全屏和游戏控制函数暴露到全局
+window.fullscreen = fullscreen;
+window.pauseGame = pauseGame;
+window.restartGame = restartGame;
+window.exitGame = exitGame;
+
 export {
     loadChartFiles
-};
+}

@@ -40,7 +40,7 @@ jobs:
       - name: Build vite
         run: |
           npm install
-          npm run build:dev
+          npm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
