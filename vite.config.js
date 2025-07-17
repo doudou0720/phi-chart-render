@@ -10,6 +10,7 @@ import {
 } from 'vite-plugin-pwa';
 import git from 'git-rev-sync';
 import path from 'path';
+// import cdn from 'vite-plugin-cdn-import'
 
 const CurrentVersion = 'v' + config.version + '-' + git.short();
 
@@ -17,6 +18,16 @@ const CurrentVersion = 'v' + config.version + '-' + git.short();
 export default defineConfig({
     base: './',
     plugins: [
+        // cdn({
+        //     prodUrl:"https://registry.npmmirror.com/{name}@{version}/{path}",
+        //     modules: [
+        //         {
+        //             name: 'react',
+        //             var: 'React',
+        //             path: `umd/react.production.min.js`,
+        //         },
+        //     ],
+        // }),
         createHtmlPlugin({
             inject: {
                 data: {
