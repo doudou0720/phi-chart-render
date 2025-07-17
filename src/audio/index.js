@@ -4,8 +4,6 @@ import unmuteAudio from './unmute';
 import AudioTimer from './timer';
 import { number as verifyNum } from '@/verify';
 
-
-
 const GlobalAudioCtxConfig = { latencyHint: 'interactive' };
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 const GlobalAudioCtx = (new Audio().canPlayType('audio/ogg') == '') ? new oggmentedAudioContext(GlobalAudioCtxConfig) : new AudioCtx(GlobalAudioCtxConfig);

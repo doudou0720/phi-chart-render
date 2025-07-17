@@ -9,33 +9,9 @@ import {
     canvasRGB as StackBlur
 } from 'stackblur-canvas';
 import Pica from 'pica';
-import * as Sentry from '@sentry/browser';
-import {
-    BrowserTracing
-} from '@sentry/tracing';
 import './phizone';
 
-(() => {
-    if (import.meta.env.MODE === 'production') {
-        // Init sentry
-        Sentry.init({
-            dsn: "https://c0f2c5052bd740c3b734b74c7dd6d350@o4504077358792704.ingest.sentry.io/4504077363183616",
-            integrations: [new BrowserTracing()],
-            tracesSampleRate: 1.0,
-            maxBreadcrumbs: 50,
-            debug: (import.meta.env.MODE === 'development'),
-            release: (import.meta.env.MODE === 'production'),
-            beforeSend: (event, hint) => {
-                let err = hint.originalException;
 
-                doms.errorWindow.content.innerText = (err.stack ? err.stack : err.message ? err.message : JSON.stringify(err, null, 4));
-                doms.errorWindow.window.style.display = 'block';
-
-                return event;
-            }
-        });
-    }
-})();
 
 const qs = (selector) => document.querySelector(selector);
 
@@ -45,7 +21,6 @@ const fonts = {
 }
 
 function toggleSkipConfigElements(show) {
-    // 兼容性问题，暂时注释
     const fileSelect = document.querySelector('.file-select');
     const children = fileSelect.children;
 
@@ -132,7 +107,8 @@ const doms = {
     },
     progressContainer: document.querySelector('#progress-container'),
     progressTemplate: document.querySelector('#progress-template'),
-    progressTotal: document.querySelector('#progress-total')
+    progressTotal: document.querySelector('#progress-total'),
+    progressdetail: document.querySelector('#progress-details')
 };
 
 const files = {
@@ -193,6 +169,7 @@ class ProgressTracker {
         this.trackers = {};
         this.container = doms.progressContainer;
         this.template = doms.progressTemplate;
+        this.detail = doms.progressdetail;
         this.total = {
             element: doms.progressTotal,
             lastLoaded: 0,
@@ -239,7 +216,6 @@ class ProgressTracker {
         }
 
         tracker.total = total;
-
         const now = Date.now();
         const elapsed = (now - tracker.lastTime) / 1000;
         const delta = loaded - tracker.lastLoaded;
@@ -288,16 +264,16 @@ class ProgressTracker {
         if (tracker) {
             this.updateProgress(name, tracker.total, tracker.total);
             tracker.element.style.background = 'rgba(76, 175, 80, 0.2)';
-
-            // 收起 details，但不移除元素
-            setTimeout(() => {
-                const detailsElement = tracker.element.closest('details');
-                if (detailsElement) {
-                    detailsElement.open = false;
-                }
-            }, 500);
-
         }
+    }
+
+    all_complete() {
+        setTimeout(() => {
+            const detailsElement = this.detail;
+            if (detailsElement) {
+                detailsElement.open = false;
+            }
+        }, 500);
     }
 
     error(name) {
@@ -787,12 +763,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 ...[
                     {
                         name: 'MiSans',
-                        url: './src/style/fonts/MiSans-Regular.ttf',
+                        url: './fonts/MiSans-Regular.ttf',
                         type: 'font'
                     },
                     {
                         name: 'A-OTF Shin Go Pr6N H',
-                        url: './src/style/fonts/A-OTF_Shin_Go_Pr6N_H.ttf',
+                        url: './fonts/A-OTF_Shin_Go_Pr6N_H.ttf',
                         type: 'font'
                     }
                 ]
@@ -877,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             await Promise.all(resourceLoadPromises);
-
+            progressTracker.all_complete();
             document.body.classList.add('font-loaded');
 
             doms.loadingStatus.innerText = 'All done!';
