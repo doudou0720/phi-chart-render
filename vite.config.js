@@ -10,7 +10,7 @@ import {
 } from 'vite-plugin-pwa';
 import git from 'git-rev-sync';
 import path from 'path';
-// import cdn from 'vite-plugin-cdn-import'
+import cdn from 'vite-plugin-cdn-import'
 
 const CurrentVersion = 'v' + config.version + '-' + git.short();
 
@@ -18,16 +18,21 @@ const CurrentVersion = 'v' + config.version + '-' + git.short();
 export default defineConfig({
     base: './',
     plugins: [
-        // cdn({
-        //     prodUrl:"https://registry.npmmirror.com/{name}@{version}/{path}",
-        //     modules: [
-        //         {
-        //             name: 'react',
-        //             var: 'React',
-        //             path: `umd/react.production.min.js`,
-        //         },
-        //     ],
-        // }),
+        cdn({
+            prodUrl:"https://registry.npmmirror.com/{name}/{version}/files/{path}",
+            modules: [
+                // {
+                //     name: 'pixi.js',
+                //     var: 'pixi.js',
+                //     path: `dist/pixi.min.js`,
+                // },
+                {
+                    name: 'jszip',
+                    var: 'jszip',
+                    path: `dist/jszip.min.js`
+                }
+            ],
+        }),
         createHtmlPlugin({
             inject: {
                 data: {
@@ -88,15 +93,15 @@ export default defineConfig({
     },
     build: {
         sourcemap: true,
-        rollupOptions: {
-            output: {
-                manualChunks(id) {
-                    if (id.includes('node_modules')) {
+        // rollupOptions: {
+        //     output: {
+        //         manualChunks(id) {
+        //             if (id.includes('node_modules')) {
 
-                        return id.toString().split('node_modules/')[1].split('/')[0].toString();
-                    }
-                }
-            }
-        }
+        //                 return id.toString().split('node_modules/')[1].split('/')[0].toString();
+        //             }
+        //         }
+        //     }
+        // }
     }
 });
