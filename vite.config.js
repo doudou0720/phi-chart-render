@@ -21,11 +21,16 @@ export default defineConfig({
         cdn({
             prodUrl:"https://registry.npmmirror.com/{name}/{version}/files/{path}",
             modules: [
-                // {
-                //     name: 'pixi.js',
-                //     var: 'pixi.js',
-                //     path: `dist/pixi.min.js`,
-                // },
+                {
+                    name: 'pixi.js',
+                    var: 'pixi.js',
+                    path: `dist/pixi.min.js`,
+                },
+                {
+                    name: 'pixi.js',
+                    var: 'pixi',
+                    path: `dist/pixi.min.js`,
+                },
                 {
                     name: 'jszip',
                     var: 'jszip',
