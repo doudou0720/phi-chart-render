@@ -28,7 +28,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+        with:
+          fetch-depth: 0  # 获取完整历史记录
+  
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
@@ -51,27 +53,39 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
     
-      - name: Prepare Build Output
+      - name: Prepare isolated branch
         run: |
-          ls | grep -v  dist | awk  '{system("rm -rf "$1)}' 
-          # 将dist文件夹内容移动到根目录
+          # 创建新的孤立分支
+          git checkout --orphan temp-deploy
+          echo "/dist" > .gitignore
+          rm -rf ./node_modules
+          # 清空工作区
+          git rm -rf .
+          # 移动构建文件到根目录
           mv dist/* .
-          # 清理残留文件
           rm -rf dist
-          rm .gitignore
-          # 确保存在提交内容
-          touch .keep
-
-      - name: Deploy to Dist Branch
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 添加所有文件到暂存区
+          # 添加所有文件
           git add -A
-          
-          # 尝试提交（忽略空提交错误）
-          git commit -m "Deploy from main (${GITHUB_SHA:0:7})" || echo "No changes to commit"
-          
-          # 强制推送到dist分支
-          git push origin HEAD:dist --force
+
+      - name: Commit to isolated branch
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "Deploy build ${GITHUB_SHA:0:7}"
+          # 创建临时标签
+          git tag deploy-temp
+
+      - name: Merge to dist branch
+        run: |
+          # 切换到dist分支或创建新分支
+          git checkout dist || git checkout -b dist
+          git pull origin dist:dist
+          # 重置到临时标签状态（保留历史）
+          git merge --squash deploy-temp --allow-unrelated-histories
+          git commit -m "Deploy build ${GITHUB_SHA:0:7}"
+          # 推送到dist分支（非强制推送）
+          git push origin dist
+
+      - name: Cleanup
+        run: |
+          git tag -d deploy-temp
