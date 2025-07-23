@@ -8,10 +8,10 @@
   ],
   "main": "src/main.js",
   "scripts": {
-    "dev": "npx vite",
-    "dev:prod": "npx vite --mode production",
-    "build": "npx vite build",
-    "build:dev": "npx vite build --mode development"
+    "dev": "nlx vite",
+    "dev:prod": "nlx vite --mode production",
+    "build": "nlx vite build",
+    "build:dev": "nlx vite build --mode development"
   },
   "repository": {
     "type": "git",
@@ -34,6 +34,7 @@
     "vite-plugin-pwa": "^1.0.0"
   },
   "dependencies": {
+    "@antfu/ni": "^25.0.0",
     "bezier-easing": "^2.1.0",
     "md5-js": "^0.0.3",
     "oggmented": "^1.0.1",
