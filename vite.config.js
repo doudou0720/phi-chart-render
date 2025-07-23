@@ -10,7 +10,7 @@ import {
 } from 'vite-plugin-pwa';
 import git from 'git-rev-sync';
 import path from 'path';
-import cdn from 'vite-plugin-cdn-import'
+// import cdn from 'vite-plugin-cdn-import'
 
 const CurrentVersion = 'v' + config.version + '-' + git.short();
 
@@ -18,21 +18,26 @@ const CurrentVersion = 'v' + config.version + '-' + git.short();
 export default defineConfig({
     base: './',
     plugins: [
-        cdn({
-            prodUrl:"https://registry.npmmirror.com/{name}/{version}/files/{path}",
-            modules: [
-                {
-                    name: 'pixi.js',
-                    var: 'pixi',
-                    path: `dist/pixi.min.js`,
-                },
-                {
-                    name: 'jszip',
-                    var: 'jszip',
-                    path: `dist/jszip.min.js`
-                }
-            ],
-        }),
+        // cdn({
+        //     prodUrl:"https://registry.npmmirror.com/{name}/{version}/files/{path}",
+        //     modules: [
+        //         {
+        //             name: 'pixi.js',
+        //             var: 'pixi.js',
+        //             path: `dist/pixi.min.js`,
+        //         },
+        //         {
+        //             name: 'pixi.js',
+        //             var: 'pixi',
+        //             path: `dist/pixi.min.js`,
+        //         },
+        //         {
+        //             name: 'jszip',
+        //             var: 'jszip',
+        //             path: `dist/jszip.min.js`
+        //         }
+        //     ],
+        // }),
         createHtmlPlugin({
             inject: {
                 data: {
@@ -93,15 +98,17 @@ export default defineConfig({
     },
     build: {
         sourcemap: true,
-        // rollupOptions: {
-        //     output: {
-        //         manualChunks(id) {
-        //             if (id.includes('node_modules')) {
-
-        //                 return id.toString().split('node_modules/')[1].split('/')[0].toString();
-        //             }
-        //         }
-        //     }
-        // }
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (id.includes('pixi')) {
+                        return 'pixi'; // 将 pixi 中的代码单独打包成一个  JS 文件
+                    }
+                    if (id.includes('jszip')) {
+                        return 'jszip'; // 将 jszip 中的代码单独打包成一个  JS 文件
+                    }
+                }
+            }
+        }
     }
 });

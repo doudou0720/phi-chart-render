@@ -5,6 +5,7 @@ import {
     Texture,
     Rectangle
 } from 'pixi.js';
+import 'pixi.js';
 import {
     canvasRGB as StackBlur
 } from 'stackblur-canvas';
