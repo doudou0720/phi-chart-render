@@ -855,6 +855,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             await Promise.all(resourceLoadPromises);
             progressTracker.all_complete();
+            // 加载字体CSS文件
+            const fontLink = document.createElement('link');
+            fontLink.rel = 'stylesheet';
+            fontLink.href = '/fonts/index.css';
+            document.head.appendChild(fontLink);
             document.body.classList.add('font-loaded');
 
             doms.loadingStatus.innerText = 'All done!';

@@ -1,5 +1,3 @@
-/* @import url('./fonts/index.css'); */
-
 html,
 body {
     padding: 0;
@@ -494,19 +492,7 @@ div.error-window pre * {
     transition: right 0.5s cubic-bezier(0, 0, 0, 1) 0.8s;
 }
 
-.font-loaded div.file-select,
-.font-loaded div.file-select *,
-.font-loaded div.play-result,
-.font-loaded div.play-result *,
-.font-loaded div.error-window,
-.font-loaded div.error-window * {
-    font-family: 'MiSans';
-}
 
-.font-loaded div.file-select a {
-    font-family: 'A-OTF Shin Go Pr6N H';
-    line-height: 20px;
-}
 
 div.debug-value {
     position: absolute;

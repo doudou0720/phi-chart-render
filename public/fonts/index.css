@@ -1,0 +1,23 @@
+.font-loaded div.file-select,
+.font-loaded div.file-select *,
+.font-loaded div.play-result,
+.font-loaded div.play-result *,
+.font-loaded div.error-window,
+.font-loaded div.error-window * {
+    font-family: 'MiSans';
+}
+
+.font-loaded div.file-select a {
+    font-family: 'A-OTF Shin Go Pr6N H';
+    line-height: 20px;
+}
+
+@font-face {
+    font-family: A-OTF Shin Go Pr6N H;
+    src: url('./A-OTF_Shin_Go_Pr6N_H.ttf');
+}
+
+@font-face {
+    font-family: MiSans;
+    src: url('./MiSans-Regular.ttf');
+}
