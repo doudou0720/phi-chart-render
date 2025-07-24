@@ -1,2 +1,0 @@
-import{N as i,F as s,D as a,C as l,B as o,a as F,A as p,d as m}from"./@pixi-BIl9izGx.js";import"./eventemitter3-BgJIfPQV.js";import"./earcut-D5S9tiw3.js";import"./url-Cgwb902x.js";const t={AlphaFilter:p,BlurFilter:F,BlurFilterPass:o,ColorMatrixFilter:l,DisplacementFilter:a,FXAAFilter:s,NoiseFilter:i};Object.entries(t).forEach(([r,e])=>{Object.defineProperty(t,r,{get(){return m("7.1.0",`filters.${r} has moved to ${r}`),e}})});
-//# sourceMappingURL=pixi.js-BD83xn3I.js.map
