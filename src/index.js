@@ -13,6 +13,36 @@ import Pica from 'pica';
 import './phizone';
 
 
+function getSearchString(name) {
+    let searchString = window.location.search.substring(1, window.location.search.length);
+    let searchStrings = searchString.split('&');
+
+    if (!name || name == '') return null;
+    if (searchStrings.length <= 0) return null;
+
+    for (const singleString of searchStrings) {
+        if (singleString.indexOf(name + '=') >= 0) {
+            let stringValue = singleString.replace(name + '=', '');
+            return decodeURIComponent(stringValue);
+        }
+    }
+    return null;
+}
+
+if (getSearchString('debug') === 'true') {
+
+    // var src = 'https://registry.npmmirror.com/eruda/latest/files/eruda.js';
+    // document.write('<scr' + 'ipt src="' + src + '"></scr' + 'ipt>');
+    import('eruda').then(eruda => {
+        eruda.default.init();
+        eruda.default.show();
+        let console = eruda.default.get('console');
+        console.warn('You\'re using debug mode, which will enable Eruda for mobile device debuging.');
+        console.warn('You SHOULDN\'T use debug mode in normal use, and don\'t run ANY code here from people that you don\'t know.')
+        console.warn('你正在使用 debug 模式，该模式将启用 Eruda 以方便在移动设备上进行调试。');
+        console.warn('你【不应该】在正常使用中启用 debug 模式，并不要在这里运行【任何】来自你不认识的人的代码。')
+    });
+}
 
 const qs = (selector) => document.querySelector(selector);
 
@@ -37,21 +67,7 @@ function toggleSkipConfigElements(show) {
     }
 }
 
-function getSearchString(name) {
-    let searchString = window.location.search.substring(1, window.location.search.length);
-    let searchStrings = searchString.split('&');
 
-    if (!name || name == '') return null;
-    if (searchStrings.length <= 0) return null;
-
-    for (const singleString of searchStrings) {
-        if (singleString.indexOf(name + '=') >= 0) {
-            let stringValue = singleString.replace(name + '=', '');
-            return decodeURIComponent(stringValue);
-        }
-    }
-    return null;
-}
 
 const doms = {
     fileSelect: document.querySelector('div.file-select'),
@@ -853,7 +869,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 })()
             );
 
-            await Promise.all(resourceLoadPromises);
+            // 修改前: await Promise.all(resourceLoadPromises);
+            // 修改后: 逐个执行资源加载
+            for (const promise of resourceLoadPromises) {
+                await promise;
+            }
             progressTracker.all_complete();
             // 加载字体CSS文件
             const fontLink = document.createElement('link');

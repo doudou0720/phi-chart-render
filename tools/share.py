@@ -68,9 +68,10 @@ def main():
     # 生成URL
     base_url = "https://phirender.ghpage.doudou0528.cloudns.ch/"
     url = f"{base_url}?skip_config={skip_config}&chart_url={chart_url}"
-
+    backup_url = f"https://phirender.mz.doudou0528.cloudns.ch/?skip_config={skip_config}&chart_url={chart_url}"
     # 输出并复制到剪贴板
     print(f"生成URL: {url}")
+    print(f"备用URL:{backup_url}")
     if copy_to_clipboard(url):
         print("已复制到剪贴板")
     else:

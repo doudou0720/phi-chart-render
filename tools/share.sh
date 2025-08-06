@@ -30,10 +30,10 @@ fi
 # 生成URL
 base_url="https://phirender.ghpage.doudou0528.cloudns.ch/"
 url="${base_url}?skip_config=${skip_config}&chart_url=${chart_url}"
-
+url_backup="https://phirender.mz.doudou0528.cloudns.ch/?skip_config=${skip_config}&chart_url=${chart_url}"
 # 输出并复制到剪贴板
 echo "生成URL: $url"
-
+echo "备用URL: $url_backup"
 # 尝试多种剪贴板方法
 copied=false
 if command -v termux-clipboard-set &> /dev/null; then
