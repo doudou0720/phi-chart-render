@@ -36,6 +36,7 @@
   "dependencies": {
     "@antfu/ni": "^25.0.0",
     "bezier-easing": "^2.1.0",
+    "eruda": "^3.4.3",
     "md5-js": "^0.0.3",
     "oggmented": "^1.0.1",
     "pixi.js": "^7.4.3",
