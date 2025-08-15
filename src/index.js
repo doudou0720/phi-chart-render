@@ -610,9 +610,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const shouldSkipConfig = getSearchString('skip_config') === 'true';
             const urlParams = new URLSearchParams(window.location.search);
             const chartUrlParam = urlParams.get('chart_url');
+            const phiZoneUrlParam = urlParams.get('phizone_url');
             // 获取URL输入框DOM
             const chartUrlInput = document.getElementById('chart-url-input');
-
+            const phiZoneInput = document.getElementById('phizone-chart-link');
             // 隐藏除进度外的元素
             toggleSkipConfigElements(false);
 
@@ -791,89 +792,88 @@ document.addEventListener('DOMContentLoaded', () => {
                 ]
             ];
             // 并发加载所有资源（每个文件独立处理）
-            const resourceLoadPromises = allResources.map(resource =>
-                (async () => {
-                    try {
-                        doms.loadingStatus.innerText = `Loading assets ...`;
-                        // 添加文件到进度跟踪器
-                        // progressTracker.addFile(resource.name, resource.url);
-                        // 获取文件内容
-                        const res = await requestFile(
-                            resource.url,
-                            progressTracker,
-                            resource.name + '(' + resource.type + ')'
-                        );
+            for (const resource of allResources) {
+                try {
+                    doms.loadingStatus.innerText = `Loading assets ...`;
+                    // 添加文件到进度跟踪器
+                    // progressTracker.addFile(resource.name, resource.url);
+                    // 获取文件内容
+                    const res = await requestFile(
+                        resource.url,
+                        progressTracker,
+                        resource.name + '(' + resource.type + ')'
+                    );
 
 
-                        // 根据资源类型处理
-                        switch (resource.type) {
-                            case 'image':
-                                const imgBitmap = await createImageBitmap(res);
-                                const texture = await Texture.from(imgBitmap);
-                                Texture.addToCache(texture, resource.name);
-                                assets.textures[resource.name] = texture;
+                    // 根据资源类型处理
+                    switch (resource.type) {
+                        case 'image':
+                            const imgBitmap = await createImageBitmap(res);
+                            const texture = await Texture.from(imgBitmap);
+                            Texture.addToCache(texture, resource.name);
+                            assets.textures[resource.name] = texture;
 
-                                // 特殊处理 clickRaw
-                                if (resource.name === 'clickRaw') {
-                                    const _clickTextures = [];
-                                    for (let i = 0; i < Math.floor(texture.height / texture.width); i++) {
-                                        const rectangle = new Rectangle(0, i * texture.width, texture.width, texture.width);
-                                        const subTexture = new Texture(texture.baseTexture, rectangle);
-                                        Texture.addToCache(subTexture, `${resource.name}${i}`);
-                                        subTexture.defaultAnchor.set(0.5);
-                                        _clickTextures.push(subTexture);
-                                    }
-                                    assets.textures[resource.name] = _clickTextures;
+                            // 特殊处理 clickRaw
+                            if (resource.name === 'clickRaw') {
+                                const _clickTextures = [];
+                                for (let i = 0; i < Math.floor(texture.height / texture.width); i++) {
+                                    const rectangle = new Rectangle(0, i * texture.width, texture.width, texture.width);
+                                    const subTexture = new Texture(texture.baseTexture, rectangle);
+                                    Texture.addToCache(subTexture, `${resource.name}${i}`);
+                                    subTexture.defaultAnchor.set(0.5);
+                                    _clickTextures.push(subTexture);
                                 }
-                                doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' :
-                                    resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
-                                break;
-
-                            case 'sound':
-                                const sound = await loadAudio(res, resource.options.loop, resource.options.noTimer);
-                                if (!assets.sounds) assets.sounds = {};
-                                assets.sounds[resource.name] = sound;
-                                doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' :
-                                    resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
-                                break;
-
-                            case 'resultMusic':
-                                const resultMusic = await loadAudio(res, resource.options.loop, resource.options.noTimer);
-                                if (!assets.sounds.result) assets.sounds.result = {};
-                                assets.sounds.result[resource.name] = resultMusic;
-                                doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' :
-                                    resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
-                                break;
-                            case 'font': {
-                                try {
-                                    const arrayBuffer = await res.arrayBuffer();
-                                    // 创建字体对象
-                                    // debugger;
-                                    const fontFace = new FontFace(resource.name, arrayBuffer);
-                                    // 添加到文档字体集
-                                    document.fonts.add(fontFace);
-                                    // 加载字体
-                                    await fontFace.load(null, 30000);
-                                    console.log(`Font ${resource.name} loaded successfully`);
-                                    doms.loadingStatus.innerText = `Loaded font ${resource.name} ...`;
-                                } catch (e) {
-                                    console.error(`Failed to load font ${resource.name}:`, e);
-                                    doms.loadingStatus.innerText = `Failed to load font ${resource.name}: ${e.message}`;
-                                }
-                                break;
+                                assets.textures[resource.name] = _clickTextures;
                             }
+                            doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' :
+                                resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
+                            break;
+
+                        case 'sound':
+                            const sound = await loadAudio(res, resource.options.loop, resource.options.noTimer);
+                            if (!assets.sounds) assets.sounds = {};
+                            assets.sounds[resource.name] = sound;
+                            doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' :
+                                resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
+                            break;
+
+                        case 'resultMusic':
+                            const resultMusic = await loadAudio(res, resource.options.loop, resource.options.noTimer);
+                            if (!assets.sounds.result) assets.sounds.result = {};
+                            assets.sounds.result[resource.name] = resultMusic;
+                            doms.loadingStatus.innerText = `Loaded ${resource.type === 'image' ? 'asset' :
+                                resource.type === 'sound' ? 'hitsound' : 'result music'} ${resource.name} ...`;
+                            break;
+                        case 'font': {
+                            try {
+                                const arrayBuffer = await res.arrayBuffer();
+                                // 创建字体对象
+                                // debugger;
+                                const fontFace = new FontFace(resource.name, arrayBuffer);
+                                // 添加到文档字体集
+                                document.fonts.add(fontFace);
+                                // 加载字体
+                                await fontFace.load(null, 30000);
+                                console.log(`Font ${resource.name} loaded successfully`);
+                                doms.loadingStatus.innerText = `Loaded font ${resource.name} ...`;
+                            } catch (e) {
+                                console.error(`Failed to load font ${resource.name}:`, e);
+                                doms.loadingStatus.innerText = `Failed to load font ${resource.name}: ${e.message}`;
+                            }
+                            break;
                         }
-                    } catch (e) {
-                        console.error(`Failed getting resource ${resource.name}:`, e);
                     }
-                })()
-            );
+                    progressTracker.complete(resource.name);
+                } catch (e) {
+                    console.error(`Failed getting resource ${resource.name}:`, e);
+                }
+            };
 
             // 修改前: await Promise.all(resourceLoadPromises);
             // 修改后: 逐个执行资源加载
-            for (const promise of resourceLoadPromises) {
-                await promise;
-            }
+            // for (const promise of resourceLoadPromises) {
+                // await promise;
+            // }
             progressTracker.all_complete();
             // 加载字体CSS文件
             const fontLink = document.createElement('link');
@@ -946,42 +946,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // 更新状态
                     doms.chartPackFileReadProgress.innerText = `Loaded chart from ${chartUrl}`;
-                    // 检查是否需要跳过配置直接开始
-                    if (shouldSkipConfig) {
-                        console.log('skip_config enabled, starting game automatically');
-
-                        // 确保文件选择完成
-                        if (doms.file.chart.childNodes.length > 0 &&
-                            doms.file.music.childNodes.length > 0) {
-
-                            // 自动选择第一个图表和音乐
-                            doms.file.chart.value = doms.file.chart.options[0].value;
-                            doms.file.music.value = doms.file.music.options[0].value;
-
-                            // 触发输入事件更新选择
-                            doms.file.chart.dispatchEvent(new Event('input'));
-                            doms.file.music.dispatchEvent(new Event('input'));
-
-                            // 添加短暂延迟确保UI更新
-                            setTimeout(() => {
-                                // 模拟点击开始按钮
-                                toggleSkipConfigElements(true);
-                                doms.startBtn.click();
-
-                                // 自动切换到全屏
-                                if (document.documentElement.requestFullscreen) {
-                                    document.getElementById('fullscreen').click().catch(e => console.error('Fullscreen error:', e));
-                                }
-                            }, 500);
-                        }
-                    }
                 } catch (e) {
                     doms.chartPackFileReadProgress.innerText = 'Failed to load from URL: ' + e.message;
                     console.error('URL load error:', e);
                 }
+            } else if (phiZoneUrlParam) {
+                try {
+                    let phiZoneUrl;
+    
+                    // 尝试作为base64解码
+                    try {
+                        phiZoneUrl = atob(phiZoneUrlParam);
+                        // 验证解码后是否是有效URL
+                        if (!isValidUrl(phiZoneUrl)) {
+                            throw new Error('Decoded string is not a valid URL');
+                        }
+                    } catch (e) {
+                        // 如果不是base64，直接使用原始值
+                        phiZoneUrl = phiZoneUrlParam;
+                    }
+    
+                    // 填入输入框
+                    phiZoneInput.value = phiZoneUrl;
+    
+                    // 模拟点击下载按钮
+                    setTimeout(() => {
+                        document.getElementById('phizone-download-chart').click();
+                    }, 500);
+                } catch (e) {
+                    console.error('PhiZone URL load error:', e);
+                }
             }
 
+            // 检查是否需要跳过配置直接开始
+            if (shouldSkipConfig) {
+                console.log('skip_config enabled, starting game automatically');
 
+                // 确保文件选择完成
+                if (doms.file.chart.childNodes.length > 0 &&
+                    doms.file.music.childNodes.length > 0) {
+
+                    // 自动选择第一个图表和音乐
+                    doms.file.chart.value = doms.file.chart.options[0].value;
+                    doms.file.music.value = doms.file.music.options[0].value;
+
+                    // 触发输入事件更新选择
+                    doms.file.chart.dispatchEvent(new Event('input'));
+                    doms.file.music.dispatchEvent(new Event('input'));
+
+                    // 添加短暂延迟确保UI更新
+                    setTimeout(() => {
+                        // 模拟点击开始按钮
+                        toggleSkipConfigElements(true);
+                        doms.startBtn.click();
+
+                        // 自动切换到全屏
+                        if (document.documentElement.requestFullscreen) {
+                            document.getElementById('fullscreen').click().catch(e => console.error('Fullscreen error:', e));
+                        }
+                    }, 500);
+                }
+            }
 
             // 添加URL加载按钮事件
             document.getElementById('load-url-btn').addEventListener('click', async () => {

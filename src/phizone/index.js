@@ -7,7 +7,7 @@ const doms = {
     downloadProgress: document.querySelector('div#phizone-download-progress')
 };
 
-const PhiZoneLinkReg = /^https:\/\/[\d\w]+\.phi\.zone\/charts\/(\d+)/;
+const PhiZoneLinkReg = /^https:\/\/[\d\w]+\.phi\.zone\/charts\/([\da-f-]+)/i;   
 
 doms.linkInput.addEventListener('keydown', (e) =>
 {
@@ -16,7 +16,7 @@ doms.linkInput.addEventListener('keydown', (e) =>
 
 doms.chartDownload.addEventListener('click', () =>
 {
-    let downloadId = doms.linkInput.value;
+    let downloadId = doms.linkInput.value.trim();
 
     if (!downloadId || downloadId == '')
     {
@@ -25,18 +25,18 @@ doms.chartDownload.addEventListener('click', () =>
         return;
     }
 
-    if (PhiZoneLinkReg.test(downloadId))
-    {
-        downloadId = parseInt(PhiZoneLinkReg.exec(downloadId)[1]);
+    // 提取 ID（来自 URL 或直接输入）
+    if (PhiZoneLinkReg.test(downloadId)) {
+        downloadId = PhiZoneLinkReg.exec(downloadId)[1]; // 提取 charts/ 后的部分
     }
-    else downloadId = parseInt(downloadId);
 
-    if (isNaN(downloadId) || downloadId <= 0)
-    {
-        alert('Please enter a valid chart link/ID!');
+    // 校验 ID 格式（数字或宽松的 UUID）
+    if (!/^[\da-f-]+$/i.test(downloadId)) {
+        alert('Invalid ID format! Expected:Numbers (e.g. 123) or UUID (e.g. 97100338-5fd6-4a49-a20e-d1a0c6690080)');
         doms.linkInput.focus();
         return;
     }
+
 
     doms.downloadProgress.innerText = 'Getting chart info...';
 
@@ -47,30 +47,30 @@ doms.chartDownload.addEventListener('click', () =>
             let resUrls = {};
             let infos = {};
 
-            if (res.id !== downloadId)
+            if (res.data.id !== downloadId)
             {
                 doms.downloadProgress.innerText = 'Cannot get chart info: ' + res.detail;
                 return;
             }
             
-            if (!verifyText(res.chart, null) || !res.song || !verifyText(res.song.illustration, null) || !verifyText(res.song.song, null))
+            if (!verifyText(res.data.file, null) || !res.data.song.title || !verifyText(res.data.song.illustration, null) || !verifyText(res.data.song.file, null))
             {
                 doms.downloadProgress.innerText = 'Cannot get chart info: server didn\'t provide any link';
                 return;
             }
 
             resUrls = {
-                chart: res.chart,
-                song: res.song.song,
-                illustration: res.song.illustration
+                chart: res.data.file,
+                song: res.data.song.file,
+                illustration: res.data.song.illustration
             };
 
             infos = {
-                name      : res.song.name,
-                artist    : res.song.composer,
-                author    : res.charter.replace(/\[PZUser:\d+:(.+)\]/, '\$1'),
-                bgAuthor  : res.song.illustrator,
-                difficult : 'Lv.' + res.level + ' ' + Math.floor(res.difficulty)
+                name      : res.data.song.title,
+                artist    : res.data.song.authorName,
+                author    : res.data.authorName.replace(/\[PZUser:\d+:(.+)\]/, '\$1'),
+                bgAuthor  : res.data.song.illustrator,
+                difficult : 'Lv.' + res.data.level + ' ' + Math.floor(res.data.difficulty)
             };
 
             downloadFiles(resUrls, infos);
