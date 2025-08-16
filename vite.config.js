@@ -99,7 +99,7 @@ export default defineConfig({
     server: {
         host: '0.0.0.0',
         port: 9000,
-        open: true
+        // open: true
     },
     build: {
         sourcemap: true,

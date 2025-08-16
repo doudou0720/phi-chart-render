@@ -78,6 +78,23 @@ doms.chartDownload.addEventListener('click', () =>
     );
 });
 
+function switchTab(e) {
+    let targetTab = e.target;
+    let targetTabContent = targetTab.dataset.tabId;
+
+    if (!document.querySelector('div.tab div.content > *#tab-' + targetTabContent)) return;
+
+    for (const tab of document.querySelectorAll('div.tab div.bar > *')) {
+        tab.classList.remove('active');
+    }
+
+    for (const content of document.querySelectorAll('div.tab div.content > *[id^="tab-"]')) {
+        content.style.display = 'none';
+    }
+
+    targetTab.classList.add('active');
+    document.querySelector('div.tab div.content > *#tab-' + targetTabContent).style.display = 'block';
+}
 
 async function downloadFiles(urls, infos)
 {
@@ -109,7 +126,13 @@ async function downloadFiles(urls, infos)
         new File([song], fileName.song, { type: song.type, lastModified: Date.now() }),
         new File([bg], fileName.bg, { type: bg.type, lastModified: Date.now() }),
         new File([new Blob([settingsFile])], 'Settings.txt', { type: 'text/plain', lastModified: Date.now() })
-    ]);
+    ]).then(() => {
+        // 切换到File标签页
+        const fileTab = document.querySelector('div.tab div.bar > *[data-tab-id="file"]');
+        if (fileTab) {
+            switchTab({ target: fileTab });
+        }
+    });
 
     function downloadFile(url, onProgressChange)
     {

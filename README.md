@@ -61,6 +61,29 @@ This project is still working.
     * [x] Shaders *(Need test)*
     * [ ] Videos
 
+* Phigrim
+    * [ ] ~~Basic support(No description of this format found)~~
+
+## About PhiZone
+
+Note: Some charts do not have data.file(ChartFileUrl), these charts cannot be loaded.
+
+Also, phigrim chart format is not supported yet.
+
+## About URL parameters
+
+`skip_config`:If this parameter is set to true, the chart renderer will immediately start playing after loading.
+
+`chart_url`:If this parameter is set, the chart renderer will load the chart from the specified URL(Must be ZIP format and no CORS).
+
+`phizone_url`:If this parameter is set, the chart renderer will load the chart from the PhiZone.
+
+If Both `chart_url` and `phizone_url` are set, the chart renderer will load the chart from the specified URL first.
+
+## About Moving to PIXI v8/Support of WebGPU
+
+As moving to PIXI v8 is a huge mission, I'm not going to do it now.
+
 ## Development
 
 You must have a Node.js enviorment to helping development.

@@ -972,6 +972,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     // 模拟点击下载按钮
                     setTimeout(() => {
                         document.getElementById('phizone-download-chart').click();
+                        // 切换到PhiZone标签
+                        const phiZoneTab = document.querySelector('div.tab div.bar > *[data-tab-id="phizone"]');
+                        if (phiZoneTab) {
+                            switchTab({ target: phiZoneTab });
+                        }
                     }, 500);
                 } catch (e) {
                     console.error('PhiZone URL load error:', e);
@@ -1571,7 +1576,12 @@ async function loadChartFiles(_files) {
                         // 如果不是ZIP，尝试加载为图表文件
                         try {
                             let chartRaw = await readText(file);
-                            let chart = typeof chartRaw === 'string' ? JSON.parse(chartRaw) : chartRaw;
+                            let chart;
+                            try {
+                                chart = typeof chartRaw === 'string' ? JSON.parse(chartRaw) : chartRaw;
+                            } catch (e) {
+                                chart = chartRaw;
+                            }
                             chart = PhiChartRender.Chart.from(chart);
                             files.charts[file.name] = chart;
                             files.all[file.name] = chart;
