@@ -1,3 +1,7 @@
+/* 新增的CSS类 */
+.hidden {
+    display: none;
+}
 <!DOCTYPE html>
 <html>
 
@@ -160,9 +164,34 @@
                         <button id="load-url-btn">Load</button></label>
 
                     <hr />
-                    <label>Chart: <select id="file-chart"></select></label><br>
-                    <label>Music: <select id="file-music"></select></label><br>
-                    <label>BG: <select id="file-bg"></select></label>
+                    <div id="song-cards-container" class="hidden">
+                        <div class="song-cards-layout">
+                            <div class="song-cards-list-wrapper">
+                                <div class="song-cards-header">
+                                    <h3>Select a Song</h3>
+                                </div>
+                                <div id="song-cards-list"></div>
+                            </div>
+                            <div class="song-card-details-wrapper">
+                                <div id="song-card-details"></div>
+                            </div>
+                        </div>
+                        <div class="file-selection-wrapper">
+                            <div class="file-selection-controls">
+                                <label>Chart: <select id="file-chart"></select></label><br>
+                                <label>Music: <select id="file-music"></select></label><br>
+                                <label>BG: <select id="file-bg"></select></label>
+                                <div class="file-selection-actions">
+                                    <button id="back-to-card-view" class="small-btn">Back to Cards</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="file-selection-controls">
+                        <label>Chart: <select id="file-chart"></select></label><br>
+                        <label>Music: <select id="file-music"></select></label><br>
+                        <label>BG: <select id="file-bg"></select></label>
+                    </div>
                 </div>
                 <div id="tab-visual">
                     <label>Custom skin pack: <input type="file" id="file-skin-pack" disabled /></label>&nbsp;<a

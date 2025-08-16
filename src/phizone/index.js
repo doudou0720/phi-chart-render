@@ -70,7 +70,7 @@ doms.chartDownload.addEventListener('click', () =>
                 artist    : res.data.song.authorName,
                 author    : res.data.authorName.replace(/\[PZUser:\d+:(.+)\]/, '\$1'),
                 bgAuthor  : res.data.song.illustrator,
-                difficult : 'Lv.' + res.data.level + ' ' + Math.floor(res.data.difficulty)
+                difficult : res.data.level + ' ' + 'Lv.' + Math.floor(res.data.difficulty)
             };
 
             downloadFiles(resUrls, infos);

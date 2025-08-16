@@ -1629,6 +1629,9 @@ async function loadChartFiles(_files) {
                         doms.file.music.childNodes.length >= 1) {
                         doms.file.chart.dispatchEvent(new Event('input'));
                         doms.startBtn.disabled = false;
+                        
+                        // 创建歌曲卡片
+                        createSongCards();
                     }
 
                     doms.chartPackFileReadProgress.innerText = 'All done!';
@@ -1725,3 +1728,273 @@ window.exitGame = exitGame;
 export {
     loadChartFiles
 }
+
+// 创建歌曲卡片
+function createSongCards() {
+    // 获取所有歌曲信息
+    const songInfos = files.infos || [];
+    if (songInfos.length === 0) return;
+
+    const container = document.getElementById('song-cards-container');
+    const listContainer = document.getElementById('song-cards-list');
+    const detailsContainer = document.getElementById('song-card-details');
+    const backToFileSelectionBtn = document.getElementById('back-to-file-selection');
+    const backToCardViewBtn = document.getElementById('back-to-card-view');
+    
+    // 检查必要的DOM元素是否存在
+    if (!container || !listContainer || !detailsContainer) {
+        console.error('Song cards container elements not found');
+        return;
+    }
+    
+    // 清空现有内容
+    listContainer.innerHTML = '';
+    detailsContainer.innerHTML = '';
+
+    // 创建卡片列表
+    songInfos.forEach((info, index) => {
+        const card = document.createElement('div');
+        card.className = 'song-card';
+        card.dataset.index = index;
+        
+        // 设置卡片文字信息
+        card.innerHTML = `
+            <div class="song-card-info">
+                <div class="song-title">${info.Name || 'Unknown'}</div>
+                <div class="song-artist">${info.Composer || 'Unknown'}</div>
+            </div>
+        `;
+        
+        // 添加背景图（如果有）
+        if (info.Image && files.images[info.Image]) {
+            const texture = files.images[info.Image].baseTexture.resource.source;
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 80;
+            canvas.height = 80;
+            ctx.drawImage(texture, 0, 0, texture.width, texture.height, 0, 0, 80, 80);
+            card.style.backgroundImage = `url(${canvas.toDataURL()})`;
+        }
+        
+        // 添加点击事件 - 显示详细信息
+        card.addEventListener('click', () => {
+            // 高亮选中卡片
+            document.querySelectorAll('.song-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            
+            // 显示详细信息
+            showSongDetails(info, index);
+        });
+        
+        // 添加双击事件 - 切换到文件选择界面
+        card.addEventListener('dblclick', () => {
+            // 显示文件选择控件
+            showFileSelection();
+            
+            // 保存当前选中的歌曲信息，以便在返回时恢复
+            currentSelectedSong = { info, index };
+        });
+        
+        listContainer.appendChild(card);
+    });
+    
+    // 显示卡片容器，隐藏文件选择控件
+    container.style.display = 'block';
+    const fileSelectionControls = document.querySelector('.file-selection-controls:not(.file-selection-wrapper .file-selection-controls)');
+    if (fileSelectionControls) {
+        fileSelectionControls.style.display = 'none';
+    }
+    
+    // 添加返回按钮事件监听器（如果元素存在）
+    if (backToFileSelectionBtn) {
+        backToFileSelectionBtn.addEventListener('click', showFileSelection);
+    }
+    
+    if (backToCardViewBtn) {
+        backToCardViewBtn.addEventListener('click', showSongCards);
+    }
+    
+    // 默认选中第一个卡片
+    if (songInfos.length > 0) {
+        const firstCard = listContainer.firstChild;
+        if (firstCard) {
+            firstCard.classList.add('selected');
+            showSongDetails(songInfos[0], 0);
+        }
+    }
+}
+
+// 显示歌曲详细信息
+function showSongDetails(info, index) {
+    const detailsContainer = document.getElementById('song-card-details');
+    
+    // 检查DOM元素是否存在
+    if (!detailsContainer) {
+        console.error('Song details container not found');
+        return;
+    }
+    
+    // 创建背景图元素
+    let bgElement = '';
+    if (info.Image && files.images[info.Image]) {
+        const texture = files.images[info.Image].baseTexture.resource.source;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 300;
+        canvas.height = 200;
+        ctx.drawImage(texture, 0, 0, texture.width, texture.height, 0, 0, 300, 200);
+        bgElement = `<div class="song-bg" style="background-image: url('${canvas.toDataURL()}')"></div>`;
+    }
+    
+    // 构建歌曲信息HTML，只显示非"Unknown"的字段
+    let songInfoHTML = `<h2>${info.Name || 'Unknown'}</h2>`;
+    
+    if (info.Composer && info.Composer !== 'Unknown') {
+        songInfoHTML += `<p>Artist: ${info.Composer}</p>`;
+    }
+    
+    if (info.Designer && info.Designer !== 'Unknown') {
+        songInfoHTML += `<p>Chart Designer: ${info.Designer}</p>`;
+    }
+    
+    if (info.Illustrator && info.Illustrator !== 'Unknown') {
+        songInfoHTML += `<p>Illustrator: ${info.Illustrator}</p>`;
+    }
+    
+    if (info.Level && info.Level !== 'Unknown') {
+        songInfoHTML += `<p>Level: ${info.Level}</p>`;
+    }
+    
+    detailsContainer.innerHTML = `
+        <div class="song-detail-card">
+            ${bgElement}
+            <div class="song-info">
+                ${songInfoHTML}
+            </div>
+        </div>
+    `;
+    
+    // 添加双击事件监听器到详细信息卡片
+    const detailCard = detailsContainer.querySelector('.song-detail-card');
+    if (detailCard) {
+        detailCard.addEventListener('dblclick', () => {
+            // 显示文件选择控件
+            showFileSelection();
+            
+            // 保存当前选中的歌曲信息，以便在返回时恢复
+            currentSelectedSong = { info, index };
+        });
+    }
+    
+    // 设置对应的文件选择
+    if (info.Chart) {
+        const chartOptions = doms.file.chart.options;
+        for (let i = 0; i < chartOptions.length; i++) {
+            if (chartOptions[i].value === info.Chart) {
+                doms.file.chart.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    
+    if (info.Music) {
+        const musicOptions = doms.file.music.options;
+        for (let i = 0; i < musicOptions.length; i++) {
+            if (musicOptions[i].value === info.Music) {
+                doms.file.music.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    
+    if (info.Image) {
+        const bgOptions = doms.file.bg.options;
+        for (let i = 0; i < bgOptions.length; i++) {
+            if (bgOptions[i].value === info.Image) {
+                doms.file.bg.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    
+    // 触发change事件
+    doms.file.chart.dispatchEvent(new Event('input'));
+    doms.file.music.dispatchEvent(new Event('input'));
+    doms.file.bg.dispatchEvent(new Event('input'));
+}
+
+// 保存当前选中的歌曲信息
+let currentSelectedSong = null;
+
+// 显示文件选择控件
+function showFileSelection() {
+    const layout = document.querySelector('.song-cards-layout');
+    const fileSelectionWrapper = document.querySelector('.file-selection-wrapper');
+    
+    // 检查DOM元素是否存在
+    if (!layout || !fileSelectionWrapper) {
+        console.error('Required elements for file selection not found');
+        return;
+    }
+    
+    // 添加动画效果
+    layout.style.opacity = '0';
+    layout.style.transform = 'translateX(-20px)';
+    
+    setTimeout(() => {
+        layout.style.display = 'none';
+        fileSelectionWrapper.classList.add('active');
+        fileSelectionWrapper.style.opacity = '0';
+        fileSelectionWrapper.style.transform = 'translateX(20px)';
+        
+        // 强制重绘
+        fileSelectionWrapper.offsetHeight;
+        
+        fileSelectionWrapper.style.opacity = '1';
+        fileSelectionWrapper.style.transform = 'translateX(0)';
+    }, 300);
+}
+
+// 显示歌曲卡片界面
+function showSongCards() {
+    const layout = document.querySelector('.song-cards-layout');
+    const fileSelectionWrapper = document.querySelector('.file-selection-wrapper');
+    
+    // 检查DOM元素是否存在
+    if (!layout || !fileSelectionWrapper) {
+        console.error('Required elements for song cards not found');
+        return;
+    }
+    
+    // 添加动画效果
+    fileSelectionWrapper.style.opacity = '0';
+    fileSelectionWrapper.style.transform = 'translateX(20px)';
+    
+    setTimeout(() => {
+        fileSelectionWrapper.classList.remove('active');
+        layout.style.display = 'flex';
+        layout.style.opacity = '0';
+        layout.style.transform = 'translateX(-20px)';
+        
+        // 强制重绘
+        layout.offsetHeight;
+        
+        layout.style.opacity = '1';
+        layout.style.transform = 'translateX(0)';
+        
+        // 恢复之前选中的歌曲
+        if (currentSelectedSong) {
+            const { info, index } = currentSelectedSong;
+            // 高亮之前选中的卡片
+            const cards = document.querySelectorAll('.song-card');
+            cards.forEach(card => card.classList.remove('selected'));
+            if (cards[index]) {
+                cards[index].classList.add('selected');
+            }
+            showSongDetails(info, index);
+        }
+    }, 300);
+}
+
+window.showFileSelection = showFileSelection;
+window.showSongCards = showSongCards;
