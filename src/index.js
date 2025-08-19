@@ -12,6 +12,14 @@ import {
 import Pica from 'pica';
 import './phizone';
 
+const checkVersion = () => {
+  const savedVersion = localStorage.getItem('phi-chart-render-version');
+  if (savedVersion && savedVersion !== GIT_VERSION) {
+    console.log(`版本已更新: ${savedVersion} -> ${GIT_VERSION}`);
+    // 可以在这里执行版本更新后的清理操作
+  }
+  localStorage.setItem('phi-chart-render-version', GIT_VERSION);
+};
 
 function getSearchString(name) {
     let searchString = window.location.search.substring(1, window.location.search.length);
@@ -604,8 +612,140 @@ window.addEventListener('resize', () => {
     calcHeightPercent();
 });
 document.addEventListener('DOMContentLoaded', () => {
+    // 加载保存的CDN配置
+    loadCdnConfig();
+    
+    // 设置CDN选择器事件监听
+    const cdnProviderSelect = document.getElementById('cdn-provider');
+    const customCdnContainer = document.getElementById('custom-cdn-container');
+    const customCdnInput = document.getElementById('custom-cdn-url');
+    const saveCdnBtn = document.getElementById('save-cdn-config');
+    const resetCdnBtn = document.getElementById('reset-cdn-config');
+    const cdnStatus = document.getElementById('cdn-status');
+    
+    cdnProviderSelect.addEventListener('change', function() {
+        customCdnContainer.style.display = this.value === 'custom' ? 'block' : 'none';
+    });
+    
+    saveCdnBtn.addEventListener('click', function() {
+        const provider = cdnProviderSelect.value;
+        const customUrl = customCdnInput.value;
+        
+        // 保存到localStorage
+        localStorage.setItem('cdnConfig', JSON.stringify({
+            provider,
+            customUrl
+        }));
+        
+        // 显示保存成功消息
+        cdnStatus.style.display = 'block';
+        cdnStatus.style.color = 'green';
+        cdnStatus.textContent = 'Configuration saved! Please reload for changes to take effect.';
+        
+        // 3秒后隐藏消息
+        setTimeout(() => {
+            cdnStatus.style.display = 'none';
+        }, 3000);
+    });
+    
+    resetCdnBtn.addEventListener('click', function() {
+        localStorage.removeItem('cdnConfig');
+        loadCdnConfig();
+        
+        // 显示重置成功消息
+        cdnStatus.style.display = 'block';
+        cdnStatus.style.color = 'green';
+        cdnStatus.textContent = 'Configuration reset to default!';
+        
+        // 3秒后隐藏消息
+        setTimeout(() => {
+            cdnStatus.style.display = 'none';
+        }, 3000);
+    });
+    
+    function loadCdnConfig() {
+        const savedConfig = localStorage.getItem('cdnConfig');
+        if (savedConfig) {
+            try {
+                const config = JSON.parse(savedConfig);
+                cdnProviderSelect.value = config.provider;
+                customCdnInput.value = config.customUrl || '';
+                
+                if (config.provider === 'custom') {
+                    customCdnContainer.style.display = 'block';
+                }
+            } catch (e) {
+                console.error('Error loading CDN config:', e);
+            }
+        }
+    }
+    
+    // 修改loadDependencies函数以使用保存的CDN配置
+    function loadDependencies() {
+        return new Promise((resolve) => {
+            // 获取保存的CDN配置
+            const savedConfig = localStorage.getItem('cdnConfig');
+            let cdnConfig = CDN_CONFIG;
+            
+            if (savedConfig) {
+                try {
+                    const config = JSON.parse(savedConfig);
+                    
+                    // 覆盖默认CDN配置
+                    if (config.provider === 'jsdelivr') {
+                        cdnConfig = {
+                            ...CDN_CONFIG,
+                            baseUrl: 'https://cdn.jsdelivr.net/npm/'
+                        };
+                    } else if (config.provider === 'unpkg') {
+                        cdnConfig = {
+                            ...CDN_CONFIG,
+                            baseUrl: 'https://unpkg.com/'
+                        };
+                    } else if (config.provider === 'custom' && config.customUrl) {
+                        cdnConfig = {
+                            ...CDN_CONFIG,
+                            baseUrl: config.customUrl
+                        };
+                    }
+                } catch (e) {
+                    console.error('Error using saved CDN config:', e);
+                }
+            }
+            
+            if (navigator.onLine) {
+                const promises = cdnConfig.modules.map(module => {
+                    return new Promise((resolve) => {
+                        const script = document.createElement('script');
+                        
+                        // 使用配置的CDN URL
+                        const url = `${cdnConfig.baseUrl}${module.name}@${module.version}/${module.path}`;
+                        script.src = url;
+                        
+                        script.onload = () => {
+                            window[module.var] = window[module.name];
+                            console.log(`Loaded ${module.name} from ${url}`);
+                            resolve();
+                        };
+                        
+                        script.onerror = () => {
+                            console.error(`Failed to load ${module.name} from ${url}`);
+                            resolve();
+                        };
+                        
+                        document.head.appendChild(script);
+                    });
+                });
+                
+                Promise.all(promises).then(resolve);
+            } else {
+                resolve();
+            }
+        });
+    }
     window.addEventListener('load', async () => {
         try {
+            checkVersion();
             const progressTracker = new ProgressTracker();
             const shouldSkipConfig = getSearchString('skip_config') === 'true';
             const urlParams = new URLSearchParams(window.location.search);

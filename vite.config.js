@@ -14,6 +14,22 @@ import path from 'path';
 
 const CurrentVersion = 'v' + config.version + '-' + git.short();
 
+const cdnConfig = {
+    modules: [{
+            name: 'pixi.js',
+            var: 'PIXI',
+            path: `dist/pixi.min.js`,
+            version: config.dependencies['pixi.js']
+        },
+        {
+            name: 'jszip',
+            var: 'JSZip',
+            path: `dist/jszip.min.js`,
+            version: config.dependencies['jszip']
+        }
+    ]
+};
+
 // https://vitejs.dev/config/
 export default defineConfig({
     base: './',
@@ -41,7 +57,8 @@ export default defineConfig({
         createHtmlPlugin({
             inject: {
                 data: {
-                    GIT_VERSION: CurrentVersion
+                    GIT_VERSION: CurrentVersion,
+                    CDN_CONFIG: JSON.stringify(cdnConfig)
                 }
             }
         }),
@@ -49,12 +66,16 @@ export default defineConfig({
             injectRegister: 'auto',
             registerType: 'autoUpdate',
             workbox: {
-                cleanupOutdatedCaches: true,
+                cleanupOutdatedCaches: false,
                 runtimeCaching: [{
-                    urlPattern: /\/phi-chart-render(.*?)\.(png|ogg|ico|ttf)/,
-                    handler: 'StaleWhileRevalidate',
+                    urlPattern: /\/phi-chart-render(.*?)\.(png|ogg|ico|ttf|js)/,
+                    handler: 'CacheFirst',
                     options: {
                         cacheName: 'assets-cache',
+                        expiration: {
+                            maxEntries: 100,
+                            maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                        }
                     },
                 }],
             },
@@ -89,7 +110,8 @@ export default defineConfig({
         }),
     ],
     define: {
-        GIT_VERSION: JSON.stringify(CurrentVersion)
+        GIT_VERSION: JSON.stringify(CurrentVersion),
+        CDN_CONFIG: JSON.stringify(cdnConfig)
     },
     resolve: {
         alias: {

@@ -1,7 +1,3 @@
-/* 新增的CSS类 */
-.hidden {
-    display: none;
-}
 <!DOCTYPE html>
 <html>
 
@@ -29,21 +25,21 @@
                         if (document.mozCancelFullScreen) return document.mozCancelFullScreen();
                         if (document.msExitFullscreen) return document.msExitFullscreen();
                     }
-
+        
                     if (this.element == elem) {
                         elem.style.position = 'relative';
                         elem.style.top = 'unset';
                         elem.style.left = 'unset';
                         elem.style.zIndex = 'unset';
                         document.body.style.overflow = 'auto';
-
+        
                         document.inDocumentFullscreenElement = null;
                         if (global.functions.resizeCanvas) global.functions.resizeCanvas();
                         return true;
                     }
-
+        
                     return false;
-
+        
                 } else {
                     if (!inDocument) {
                         if (!(elem instanceof HTMLElement)) elem = document.body;
@@ -52,39 +48,39 @@
                         if (elem.mozRequestFullScreen) return elem.mozRequestFullScreen();
                         if (elem.msRequestFullscreen) return elem.msRequestFullscreen();
                     }
-
+        
                     if (elem != document.body) {
                         elem.style.position = 'fixed';
                         elem.style.top = '0';
                         elem.style.left = '0';
                         elem.style.zIndex = '5050';
                         document.body.style.overflow = 'hidden';
-
+        
                         document.inDocumentFullscreenElement = elem;
                         if (global.functions.resizeCanvas) global.functions.resizeCanvas();
                         return true;
                     }
-
+        
                     return false;
                 }
             },
-
+        
             // 检查当前全屏的元素
             check(elem) {
                 if (!(elem instanceof HTMLElement)) elem = document.body;
                 return this.element == elem;
             },
-
+        
             // 返回当前浏览器的全屏组件。
             get element() {
                 return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || document.inDocumentFullscreenElement;
             },
-
+        
             // 返回当前浏览器是否支持全屏 API。
             get enabled() {
                 return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled);
             },
-
+        
             // 返回当前的全屏模式。2 == 网页内全屏，1 == API 全屏，0 == 没有开启全屏
             get type() {
                 if (document.inDocumentFullscreenElement) {
@@ -96,10 +92,73 @@
                 }
             }
         };
-
-
-
-
+        
+        
+        
+        
+    </script>
+    <script>
+        // 版本管理
+        const APP_VERSION = '<%= GIT_VERSION %>';
+        const CDN_CONFIG = <%= CDN_CONFIG %>;
+        
+        // 注册Service Worker
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed') {
+                  if (confirm('新版本可用，是否立即更新？')) {
+                    newWorker.postMessage({action: 'skipWaiting'});
+                    window.location.reload();
+                  }
+                }
+              });
+            });
+          });
+          
+          // 监听更新
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            window.location.reload();
+          });
+        }
+        
+        // 动态加载CDN或本地资源
+        function loadDependencies() {
+          return new Promise((resolve) => {
+            if (navigator.onLine) {
+              // 在线时使用CDN
+              const promises = CDN_CONFIG.modules.map(module => {
+                return new Promise((resolve) => {
+                  const script = document.createElement('script');
+                  script.src = `https://cdn.jsdelivr.net/npm/${module.name}@${module.version}/${module.path}`;
+                  script.onload = () => {
+                    window[module.var] = window[module.name]; // 确保全局变量正确
+                    resolve();
+                  };
+                  script.onerror = () => resolve(); // 失败时继续
+                  document.head.appendChild(script);
+                });
+              });
+              Promise.all(promises).then(resolve);
+            } else {
+              // 离线时使用本地资源
+              resolve();
+            }
+          });
+        }
+        
+        // 在DOM加载完成后执行
+        document.addEventListener('DOMContentLoaded', () => {
+          loadDependencies().then(() => {
+            // 确保资源加载完成后再加载主脚本
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = '/src/index.js';
+            document.body.appendChild(script);
+          });
+        });
     </script>
 </head>
 
@@ -154,13 +213,13 @@
                 <div data-tab-id="sound">Sound</div>
                 <div data-tab-id="other">Other</div>
                 <div data-tab-id="phizone">PhiZone</div>
+                <div data-tab-id="experimental">Settings(Experimental)</div>
             </div>
             <div class="content">
                 <div id="tab-file">
                     <label>Select chart file(s): <input type="file" id="file-chart-pack" multiple disabled></label><br>
 
-                    <label>Or load from URL: <input type="text" id="chart-url-input"
-                            placeholder="https://example.com/chart.zip">
+                    <label>Or load from URL: <input type="text" id="chart-url-input" placeholder="https://example.com/chart.zip">
                         <button id="load-url-btn">Load</button></label>
 
                     <hr />
@@ -194,8 +253,7 @@
                     </div>
                 </div>
                 <div id="tab-visual">
-                    <label>Custom skin pack: <input type="file" id="file-skin-pack" disabled /></label>&nbsp;<a
-                        href="./skin.example.zip" download="skin.example.zip">Download example skin pack</a><br>
+                    <label>Custom skin pack: <input type="file" id="file-skin-pack" disabled /></label>&nbsp;<a href="./skin.example.zip" download="skin.example.zip">Download example skin pack</a><br>
                     <div class="loading" id="loading-skin-pack">No skinpack selected.</div>
                     <hr />
                     <label><input type="checkbox" id="settings-show-bg" checked />Show BG</label><br>
@@ -215,25 +273,20 @@
                             <option value="3">Original</option>
                         </select></label>
                     <hr />
-                    <label>Note scale: <input type="range" id="settings-note-scale" min="0" max="4000"
-                            value="2000"></label><br>
-                    <label>Background dim: <input type="range" id="settings-bg-dim" min="0" max="1" step="0.01"
-                            value="0.5"></label><br>
+                    <label>Note scale: <input type="range" id="settings-note-scale" min="0" max="4000" value="2000"></label><br>
+                    <label>Background dim: <input type="range" id="settings-bg-dim" min="0" max="1" step="0.01" value="0.5"></label><br>
                     <label>BG blur: <input type="range" id="settings-bg-blur" min="0" max="100" value="50" /></label>
                 </div>
                 <div id="tab-sound">
-                    <label>Chart offset: <input type="number" id="settings-audio-offset" placeholder="0"
-                            style="width:4em" />ms</label><br>
+                    <label>Chart offset: <input type="number" id="settings-audio-offset" placeholder="0" style="width:4em" />ms</label><br>
                     <div style="margin-left:20px">(recommended 100ms for Chrome/Chrome based browsers)</div>
                     <button id="settings-test-input-delay">Tap on this button to test input delay...</button><br>
                     <label><input type="checkbox" id="settings-use-browser-latency" />Use browser's output latency
                         (experimental)</label><br>
-                    <label>Speed: <input type="range" id="settings-audio-speed" min="0.25" max="1.75" step="0.25"
-                            value="1"></label><br>
+                    <label>Speed: <input type="range" id="settings-audio-speed" min="0.25" max="1.75" step="0.25" value="1"></label><br>
                     <hr />
                     <label><input type="checkbox" id="settings-hitsound" checked />Hitsound</label><br>
-                    <label>Hitsound volume: <input type="range" id="settings-hitsound-volume" min="0" max="1"
-                            step="0.01" value="1"></label><br>
+                    <label>Hitsound volume: <input type="range" id="settings-hitsound-volume" min="0" max="1" step="0.01" value="1"></label><br>
                 </div>
                 <div id="tab-other">
                     <label><input type="checkbox" id="settings-challenge-mode" />Challenge Mode</label><br>
@@ -248,28 +301,58 @@
                     <hr />
                     <div class="loading" id="phizone-download-progress">No download task</div>
                 </div>
+                <div id="tab-experimental">
+                    <h3>CDN Configuration</h3>
+                    <div class="cdn-config">
+                        <label>
+                            CDN Provider:
+                            <select id="cdn-provider">
+                                <option value="jsdelivr">jsDelivr (Default)</option>
+                                <option value="unpkg">unpkg</option>
+                                <option value="custom">Custom URL</option>
+                            </select>
+                        </label>
+
+                        <div id="custom-cdn-container" style="display:none; margin-top:10px">
+                            <label>
+                                Custom CDN Template:
+                                <input type="text" id="custom-cdn-url" placeholder="https://example.com/{name}@{version}/{path}" style="width:100%">
+                            </label>
+                            <small>Use placeholders: {name}, {version}, {path}</small>
+                        </div>
+
+                        <div style="margin-top:15px">
+                            <button id="save-cdn-config">Save CDN Configuration</button>
+                            <button id="reset-cdn-config" style="margin-left:10px">Reset to Default</button>
+                        </div>
+
+                        <div id="cdn-status" style="margin-top:10px; color:green; display:none">
+                            Configuration saved! Changes will apply after reload.
+                        </div>
+                    </div>
+
+                    <hr>
+                    <h3>Other Experimental Settings</h3>
+                    <!-- 可以在这里添加其他实验性设置 -->
+                </div>
             </div>
         </div>
         <hr />
         <button id="start" disabled>Start</button>
         <hr />
         Current version: <%= GIT_VERSION %>
+        <br>
+        <div>
+            Origin GitHub homepage: <a href="https://github.com/MisaLiu/phi-chart-render" target="_blank">https://github.com/MisaLiu/phi-chart-render</a>
             <br>
-            <div>
-                Origin GitHub homepage: <a href="https://github.com/MisaLiu/phi-chart-render"
-                    target="_blank">https://github.com/MisaLiu/phi-chart-render</a>
-                <br>
-                Fork Github homepage: <a href="https://github.com/doudou0720/phi-chart-render"
-                    target="_blank">https://github.com/doudou0720/phi-chart-render</a><br>
-                Report bugs <a href="https://github.com/doudou0720/phi-chart-render/issues/new/choose"
-                    target="_blank">Here</a>
-                <hr />
-                Consider <a href="https://patreon.com/HIMlaoS_Misa" target="_blank">support me on Patreon</a> if you
-                like!<br />
-                喜欢的话可以到 <a href="https://afdian.net/a/MisaLiu" target="_blank">爱发电</a> 支持一下原作者！
-            </div>
-            <button onclick="fullscreen.toggle(document.body, false)" class="fullscreen"
-                id="fullscreen">Fullscreen</button>
+            Fork Github homepage: <a href="https://github.com/doudou0720/phi-chart-render" target="_blank">https://github.com/doudou0720/phi-chart-render</a><br>
+            Report bugs <a href="https://github.com/doudou0720/phi-chart-render/issues/new/choose" target="_blank">Here</a>
+            <hr />
+            Consider <a href="https://patreon.com/HIMlaoS_Misa" target="_blank">support me on Patreon</a> if you
+            like!<br />
+            喜欢的话可以到 <a href="https://afdian.net/a/MisaLiu" target="_blank">爱发电</a> 支持一下原作者！
+        </div>
+        <button onclick="fullscreen.toggle(document.body, false)" class="fullscreen" id="fullscreen">Fullscreen</button>
     </div>
 
     <div class="debug-value"></div>
@@ -338,10 +421,8 @@
     </div>
 
     <div class="error-window">
-        <div>An error has just occurred, if you're sure this is not caused by you, please <a
-                href="https://github.com/doudou0720/phi-chart-render/issues/new/choose" target="_blank">report it on
-                GitHub</a>. <!--a href="#" onclick="eruda.show();return false;">Show Eruda</a--><button
-                class="close">Close</button></div>
+        <div>An error has just occurred, if you're sure this is not caused by you, please <a href="https://github.com/doudou0720/phi-chart-render/issues/new/choose" target="_blank">report it on
+                GitHub</a>. <!--a href="#" onclick="eruda.show();return false;">Show Eruda</a--><button class="close">Close</button></div>
         <pre><code class="content">Test Text Not A Real Error</code></pre>
     </div>
 
