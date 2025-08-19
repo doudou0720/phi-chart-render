@@ -1,4 +1,4 @@
-/* 新增的CSS类 */ .hidden { display: none; }<!doctype html><html><head><title>phi-chart-render</title><meta name="description" content="A Phigros chart render based on Pixi.js"/><meta name="author" content="MisaLiu"/><meta charset="utf-8"/><meta name="viewport" content="width=device-width"/><link rel="shortcut icon" href="./icons/favicon.ico"/><script>// 全屏相关。代码来自 lchzh3473
+<!doctype html><html><head><title>phi-chart-render</title><meta name="description" content="A Phigros chart render based on Pixi.js"/><meta name="author" content="MisaLiu"/><meta charset="utf-8"/><meta name="viewport" content="width=device-width"/><link rel="shortcut icon" href="./icons/favicon.ico"/><script>// 全屏相关。代码来自 lchzh3473
         const fullscreen = {
             // 切换全屏状态
             toggle(elem, inDocument = false) {
@@ -11,21 +11,21 @@
                         if (document.mozCancelFullScreen) return document.mozCancelFullScreen();
                         if (document.msExitFullscreen) return document.msExitFullscreen();
                     }
-
+        
                     if (this.element == elem) {
                         elem.style.position = 'relative';
                         elem.style.top = 'unset';
                         elem.style.left = 'unset';
                         elem.style.zIndex = 'unset';
                         document.body.style.overflow = 'auto';
-
+        
                         document.inDocumentFullscreenElement = null;
                         if (global.functions.resizeCanvas) global.functions.resizeCanvas();
                         return true;
                     }
-
+        
                     return false;
-
+        
                 } else {
                     if (!inDocument) {
                         if (!(elem instanceof HTMLElement)) elem = document.body;
@@ -34,39 +34,39 @@
                         if (elem.mozRequestFullScreen) return elem.mozRequestFullScreen();
                         if (elem.msRequestFullscreen) return elem.msRequestFullscreen();
                     }
-
+        
                     if (elem != document.body) {
                         elem.style.position = 'fixed';
                         elem.style.top = '0';
                         elem.style.left = '0';
                         elem.style.zIndex = '5050';
                         document.body.style.overflow = 'hidden';
-
+        
                         document.inDocumentFullscreenElement = elem;
                         if (global.functions.resizeCanvas) global.functions.resizeCanvas();
                         return true;
                     }
-
+        
                     return false;
                 }
             },
-
+        
             // 检查当前全屏的元素
             check(elem) {
                 if (!(elem instanceof HTMLElement)) elem = document.body;
                 return this.element == elem;
             },
-
+        
             // 返回当前浏览器的全屏组件。
             get element() {
                 return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || document.inDocumentFullscreenElement;
             },
-
+        
             // 返回当前浏览器是否支持全屏 API。
             get enabled() {
                 return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled);
             },
-
+        
             // 返回当前的全屏模式。2 == 网页内全屏，1 == API 全屏，0 == 没有开启全屏
             get type() {
                 if (document.inDocumentFullscreenElement) {
@@ -77,4 +77,64 @@
                     return 0;
                 }
             }
-        };</script><script type="module" crossorigin src="./assets/index-uW54b7qF.js"></script><link rel="modulepreload" crossorigin href="./assets/jszip-DZS69eYw.js"><link rel="modulepreload" crossorigin href="./assets/pixi-Sbd-W5CD.js"><link rel="stylesheet" crossorigin href="./assets/index-L0BDfgFs.css"><link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head><body><div class="file-select"><div><b>For iOS users:</b><br>Please use Quark Browser for better experience (not ad) .</div><hr/><div>Due to some performance issue on FireFox Android, consider using <a href="https://github.com/kiwibrowser/src.next/releases" target="_blank">Kiwi Browser(Deprecated)</a> or <a href="https://viayoo.com/" target="_blank">Via</a> , <a href="https://www.google.com/chrome/" target="_blank">Google Chrome</a> or MS Edge.</div><hr/><div class="loading none-hide" id="loading-status">Loading scripts...</div><div class="loading none-hide" id="file-read-progress">Please wait until assets loaded...</div><div style="display:none"><div id="progress-template"><div class="file-name"></div><div class="progress-bar"><div class="progress"></div></div><div class="progress-info"><span class="loaded"></span> <span class="speed"></span> <span class="total"></span></div></div></div><div class="none-hide" id="progress-total"><div class="file-name">Total</div><div class="progress-bar"><div class="progress"></div></div><div class="progress-info"><span class="loaded"></span> <span class="speed"></span> <span class="total"></span></div></div><details class="none-hide" id="progress-details" open><div id="progress-container"></div></details><hr/><div class="tab"><div class="bar"><div data-tab-id="file" class="active">File</div><div data-tab-id="visual">Visual</div><div data-tab-id="sound">Sound</div><div data-tab-id="other">Other</div><div data-tab-id="phizone">PhiZone</div></div><div class="content"><div id="tab-file"><label>Select chart file(s): <input type="file" id="file-chart-pack" multiple="multiple" disabled="disabled"></label><br><label>Or load from URL: <input id="chart-url-input" placeholder="https://example.com/chart.zip"> <button id="load-url-btn">Load</button></label><hr/><div id="song-cards-container" class="hidden"><div class="song-cards-layout"><div class="song-cards-list-wrapper"><div class="song-cards-header"><h3>Select a Song</h3></div><div id="song-cards-list"></div></div><div class="song-card-details-wrapper"><div id="song-card-details"></div></div></div><div class="file-selection-wrapper"><div class="file-selection-controls"><label>Chart: <select id="file-chart"></select></label><br><label>Music: <select id="file-music"></select></label><br><label>BG: <select id="file-bg"></select></label><div class="file-selection-actions"><button id="back-to-card-view" class="small-btn">Back to Cards</button></div></div></div></div><div class="file-selection-controls"><label>Chart: <select id="file-chart"></select></label><br><label>Music: <select id="file-music"></select></label><br><label>BG: <select id="file-bg"></select></label></div></div><div id="tab-visual"><label>Custom skin pack: <input type="file" id="file-skin-pack" disabled="disabled"/></label>&nbsp;<a href="./skin.example.zip" download="skin.example.zip">Download example skin pack</a><br><div class="loading" id="loading-skin-pack">No skinpack selected.</div><hr/><label><input type="checkbox" id="settings-show-bg" checked="checked"/>Show BG</label><br><label><input type="checkbox" id="settings-multi-note-hl" checked="checked"/>Highlight same time notes</label><br><label><input type="checkbox" id="settings-show-ap-status" checked="checked"/>Show AP status</label><br><label><input type="checkbox" id="settings-show-input-point" checked="checked"/>Show input point</label><br><label><input type="checkbox" id="settings-anti-alias" checked="checked"/>Anti-alias</label><br><label><input type="checkbox" id="settings-low-resolution"/>Low resolution mode</label><br><label><input type="checkbox" id="settings-prpr-extra" checked="checked"/>Use prpr's extra.json (experimental)</label><hr/><label>BG quality: <select id="settings-bg-quality"><option value="0">Low (480P)</option><option value="1" default selected="selected">Medium (720P)</option><option value="2">High (1080P)</option><option value="3">Original</option></select></label><hr/><label>Note scale: <input type="range" id="settings-note-scale" min="0" max="4000" value="2000"></label><br><label>Background dim: <input type="range" id="settings-bg-dim" min="0" max="1" step="0.01" value="0.5"></label><br><label>BG blur: <input type="range" id="settings-bg-blur" min="0" max="100" value="50"/></label></div><div id="tab-sound"><label>Chart offset: <input type="number" id="settings-audio-offset" placeholder="0" style="width:4em"/>ms</label><br><div style="margin-left:20px">(recommended 100ms for Chrome/Chrome based browsers)</div><button id="settings-test-input-delay">Tap on this button to test input delay...</button><br><label><input type="checkbox" id="settings-use-browser-latency"/>Use browser's output latency (experimental)</label><br><label>Speed: <input type="range" id="settings-audio-speed" min="0.25" max="1.75" step="0.25" value="1"></label><br><hr/><label><input type="checkbox" id="settings-hitsound" checked="checked"/>Hitsound</label><br><label>Hitsound volume: <input type="range" id="settings-hitsound-volume" min="0" max="1" step="0.01" value="1"></label><br></div><div id="tab-other"><label><input type="checkbox" id="settings-challenge-mode"/>Challenge Mode</label><br><label><input type="checkbox" id="settings-plyndb"/>Play like you never did before</label><br><label><input type="checkbox" id="settings-autoplay"/>AutoPlay</label><br><label><input type="checkbox" id="settings-debug"/>Debug</label><br></div><div id="tab-phizone"><label>Paste chart link/ID from <a href="https://www.phi.zone/" target="_href">PhiZone</a> here: <input id="phizone-chart-link"/></label> <button id="phizone-download-chart">Download</button><hr/><div class="loading" id="phizone-download-progress">No download task</div></div></div></div><hr/><button id="start" disabled="disabled">Start</button><hr/>Current version: v0.0.1-beta15-075f207<br><div>Origin GitHub homepage: <a href="https://github.com/MisaLiu/phi-chart-render" target="_blank">https://github.com/MisaLiu/phi-chart-render</a><br>Fork Github homepage: <a href="https://github.com/doudou0720/phi-chart-render" target="_blank">https://github.com/doudou0720/phi-chart-render</a><br>Report bugs <a href="https://github.com/doudou0720/phi-chart-render/issues/new/choose" target="_blank">Here</a><hr/>Consider <a href="https://patreon.com/HIMlaoS_Misa" target="_blank">support me on Patreon</a> if you like!<br/>喜欢的话可以到 <a href="https://afdian.net/a/MisaLiu" target="_blank">爱发电</a> 支持一下原作者！</div><button onclick="fullscreen.toggle(document.body, false)" class="fullscreen" id="fullscreen">Fullscreen</button></div><div class="debug-value"></div><div class="play-result"><div class="bg-shadow-cover top"></div><div class="bg-shadow-cover"></div><div class="song-info"><div class="title">Song name</div><div class="subtitle artist">Artist</div><div class="subtitle diff">SP Lv.?</div></div><div class="judge-icon">S</div><div class="extra-info">FULL COMBO</div><div class="info-bar score"><div class="score">1000000</div><div class="acc">Accuracy 100.00%</div></div><div class="info-bar acc-bar"><div class="judge-histogram"><div class="center"></div></div></div><div class="info-bar detail"><div class="detail"><div class="detail-single"><div class="type">Perfect</div><div class="value perfect">100</div></div><div class="detail-single"><div class="type">Good</div><div class="value good">0</div></div><div class="detail-single"><div class="type">Bad</div><div class="value bad">0</div></div><div class="detail-single"><div class="type">Miss</div><div class="value miss">0</div></div></div><div class="max-combo">Max Combo 100</div></div><div class="actions"><button onclick="history.go(0)">Refresh</button> <button class="big highlight" onclick="restartGame()">Restart</button> <button class="big highlight" onclick="exitGame()">Exit</button></div></div><div class="game-paused"><div class="title">Game paused</div><div class="action"><button onclick="fullscreen.toggle(document.body, false)">Fullscreen</button> <button onclick="exitGame()">Exit</button> <button onclick="restartGame()">Restart</button> <button onclick="pauseGame()">Continue</button></div></div><div class="error-window"><div>An error has just occurred, if you're sure this is not caused by you, please <a href="https://github.com/doudou0720/phi-chart-render/issues/new/choose" target="_blank">report it on GitHub</a>. <button class="close">Close</button></div><pre><code class="content">Test Text Not A Real Error</code></pre></div></body></html>
+        };</script><script>// 版本管理
+        const APP_VERSION = 'v0.0.1-beta15-e2418e7';
+        const CDN_CONFIG = {&#34;modules&#34;:[{&#34;name&#34;:&#34;pixi.js&#34;,&#34;var&#34;:&#34;PIXI&#34;,&#34;path&#34;:&#34;dist/pixi.min.js&#34;,&#34;version&#34;:&#34;^7.4.3&#34;},{&#34;name&#34;:&#34;jszip&#34;,&#34;var&#34;:&#34;JSZip&#34;,&#34;path&#34;:&#34;dist/jszip.min.js&#34;}]};
+        
+        // 注册Service Worker
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed') {
+                  if (confirm('新版本可用，是否立即更新？')) {
+                    newWorker.postMessage({action: 'skipWaiting'});
+                    window.location.reload();
+                  }
+                }
+              });
+            });
+          });
+          
+          // 监听更新
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            window.location.reload();
+          });
+        }
+        
+        // 动态加载CDN或本地资源
+        function loadDependencies() {
+          return new Promise((resolve) => {
+            if (navigator.onLine) {
+              // 在线时使用CDN
+              const promises = CDN_CONFIG.modules.map(module => {
+                return new Promise((resolve) => {
+                  const script = document.createElement('script');
+                  script.src = `https://cdn.jsdelivr.net/npm/${module.name}@${module.version}/${module.path}`;
+                  script.onload = () => {
+                    window[module.var] = window[module.name]; // 确保全局变量正确
+                    resolve();
+                  };
+                  script.onerror = () => resolve(); // 失败时继续
+                  document.head.appendChild(script);
+                });
+              });
+              Promise.all(promises).then(resolve);
+            } else {
+              // 离线时使用本地资源
+              resolve();
+            }
+          });
+        }
+        
+        // 在DOM加载完成后执行
+        document.addEventListener('DOMContentLoaded', () => {
+          loadDependencies().then(() => {
+            // 确保资源加载完成后再加载主脚本
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = '/src/index.js';
+            document.body.appendChild(script);
+          });
+        });</script><script type="module" crossorigin src="./assets/index-CMOy_ftY.js"></script><link rel="modulepreload" crossorigin href="./assets/jszip-DZS69eYw.js"><link rel="modulepreload" crossorigin href="./assets/pixi-Sbd-W5CD.js"><link rel="stylesheet" crossorigin href="./assets/index-HhsvLXqt.css"><link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head><body><div class="file-select"><div><b>For iOS users:</b><br>Please use Quark Browser for better experience (not ad) .</div><hr/><div>Due to some performance issue on FireFox Android, consider using <a href="https://github.com/kiwibrowser/src.next/releases" target="_blank">Kiwi Browser(Deprecated)</a> or <a href="https://viayoo.com/" target="_blank">Via</a> , <a href="https://www.google.com/chrome/" target="_blank">Google Chrome</a> or MS Edge.</div><hr/><div class="loading none-hide" id="loading-status">Loading scripts...</div><div class="loading none-hide" id="file-read-progress">Please wait until assets loaded...</div><div style="display:none"><div id="progress-template"><div class="file-name"></div><div class="progress-bar"><div class="progress"></div></div><div class="progress-info"><span class="loaded"></span> <span class="speed"></span> <span class="total"></span></div></div></div><div class="none-hide" id="progress-total"><div class="file-name">Total</div><div class="progress-bar"><div class="progress"></div></div><div class="progress-info"><span class="loaded"></span> <span class="speed"></span> <span class="total"></span></div></div><details class="none-hide" id="progress-details" open><div id="progress-container"></div></details><hr/><div class="tab"><div class="bar"><div data-tab-id="file" class="active">File</div><div data-tab-id="visual">Visual</div><div data-tab-id="sound">Sound</div><div data-tab-id="other">Other</div><div data-tab-id="phizone">PhiZone</div><div data-tab-id="experimental">Settings(Experimental)</div></div><div class="content"><div id="tab-file"><label>Select chart file(s): <input type="file" id="file-chart-pack" multiple="multiple" disabled="disabled"></label><br><label>Or load from URL: <input id="chart-url-input" placeholder="https://example.com/chart.zip"> <button id="load-url-btn">Load</button></label><hr/><div id="song-cards-container" class="hidden"><div class="song-cards-layout"><div class="song-cards-list-wrapper"><div class="song-cards-header"><h3>Select a Song</h3></div><div id="song-cards-list"></div></div><div class="song-card-details-wrapper"><div id="song-card-details"></div></div></div><div class="file-selection-wrapper"><div class="file-selection-controls"><label>Chart: <select id="file-chart"></select></label><br><label>Music: <select id="file-music"></select></label><br><label>BG: <select id="file-bg"></select></label><div class="file-selection-actions"><button id="back-to-card-view" class="small-btn">Back to Cards</button></div></div></div></div><div class="file-selection-controls"><label>Chart: <select id="file-chart"></select></label><br><label>Music: <select id="file-music"></select></label><br><label>BG: <select id="file-bg"></select></label></div></div><div id="tab-visual"><label>Custom skin pack: <input type="file" id="file-skin-pack" disabled="disabled"/></label>&nbsp;<a href="./skin.example.zip" download="skin.example.zip">Download example skin pack</a><br><div class="loading" id="loading-skin-pack">No skinpack selected.</div><hr/><label><input type="checkbox" id="settings-show-bg" checked="checked"/>Show BG</label><br><label><input type="checkbox" id="settings-multi-note-hl" checked="checked"/>Highlight same time notes</label><br><label><input type="checkbox" id="settings-show-ap-status" checked="checked"/>Show AP status</label><br><label><input type="checkbox" id="settings-show-input-point" checked="checked"/>Show input point</label><br><label><input type="checkbox" id="settings-anti-alias" checked="checked"/>Anti-alias</label><br><label><input type="checkbox" id="settings-low-resolution"/>Low resolution mode</label><br><label><input type="checkbox" id="settings-prpr-extra" checked="checked"/>Use prpr's extra.json (experimental)</label><hr/><label>BG quality: <select id="settings-bg-quality"><option value="0">Low (480P)</option><option value="1" default selected="selected">Medium (720P)</option><option value="2">High (1080P)</option><option value="3">Original</option></select></label><hr/><label>Note scale: <input type="range" id="settings-note-scale" min="0" max="4000" value="2000"></label><br><label>Background dim: <input type="range" id="settings-bg-dim" min="0" max="1" step="0.01" value="0.5"></label><br><label>BG blur: <input type="range" id="settings-bg-blur" min="0" max="100" value="50"/></label></div><div id="tab-sound"><label>Chart offset: <input type="number" id="settings-audio-offset" placeholder="0" style="width:4em"/>ms</label><br><div style="margin-left:20px">(recommended 100ms for Chrome/Chrome based browsers)</div><button id="settings-test-input-delay">Tap on this button to test input delay...</button><br><label><input type="checkbox" id="settings-use-browser-latency"/>Use browser's output latency (experimental)</label><br><label>Speed: <input type="range" id="settings-audio-speed" min="0.25" max="1.75" step="0.25" value="1"></label><br><hr/><label><input type="checkbox" id="settings-hitsound" checked="checked"/>Hitsound</label><br><label>Hitsound volume: <input type="range" id="settings-hitsound-volume" min="0" max="1" step="0.01" value="1"></label><br></div><div id="tab-other"><label><input type="checkbox" id="settings-challenge-mode"/>Challenge Mode</label><br><label><input type="checkbox" id="settings-plyndb"/>Play like you never did before</label><br><label><input type="checkbox" id="settings-autoplay"/>AutoPlay</label><br><label><input type="checkbox" id="settings-debug"/>Debug</label><br></div><div id="tab-phizone"><label>Paste chart link/ID from <a href="https://www.phi.zone/" target="_href">PhiZone</a> here: <input id="phizone-chart-link"/></label> <button id="phizone-download-chart">Download</button><hr/><div class="loading" id="phizone-download-progress">No download task</div></div><div id="tab-experimental"><h3>CDN Configuration</h3><div class="cdn-config"><label>CDN Provider: <select id="cdn-provider"><option value="jsdelivr">jsDelivr (Default)</option><option value="unpkg">unpkg</option><option value="custom">Custom URL</option></select></label><div id="custom-cdn-container" style="display:none;margin-top:10px"><label>Custom CDN Template: <input id="custom-cdn-url" placeholder="https://example.com/{name}@{version}/{path}" style="width:100%"></label> <small>Use placeholders: {name}, {version}, {path}</small></div><div style="margin-top:15px"><button id="save-cdn-config">Save CDN Configuration</button> <button id="reset-cdn-config" style="margin-left:10px">Reset to Default</button></div><div id="cdn-status" style="margin-top:10px;color:green;display:none">Configuration saved! Changes will apply after reload.</div></div><hr><h3>Other Experimental Settings</h3></div></div></div><hr/><button id="start" disabled="disabled">Start</button><hr/>Current version: v0.0.1-beta15-e2418e7<br><div>Origin GitHub homepage: <a href="https://github.com/MisaLiu/phi-chart-render" target="_blank">https://github.com/MisaLiu/phi-chart-render</a><br>Fork Github homepage: <a href="https://github.com/doudou0720/phi-chart-render" target="_blank">https://github.com/doudou0720/phi-chart-render</a><br>Report bugs <a href="https://github.com/doudou0720/phi-chart-render/issues/new/choose" target="_blank">Here</a><hr/>Consider <a href="https://patreon.com/HIMlaoS_Misa" target="_blank">support me on Patreon</a> if you like!<br/>喜欢的话可以到 <a href="https://afdian.net/a/MisaLiu" target="_blank">爱发电</a> 支持一下原作者！</div><button onclick="fullscreen.toggle(document.body, false)" class="fullscreen" id="fullscreen">Fullscreen</button></div><div class="debug-value"></div><div class="play-result"><div class="bg-shadow-cover top"></div><div class="bg-shadow-cover"></div><div class="song-info"><div class="title">Song name</div><div class="subtitle artist">Artist</div><div class="subtitle diff">SP Lv.?</div></div><div class="judge-icon">S</div><div class="extra-info">FULL COMBO</div><div class="info-bar score"><div class="score">1000000</div><div class="acc">Accuracy 100.00%</div></div><div class="info-bar acc-bar"><div class="judge-histogram"><div class="center"></div></div></div><div class="info-bar detail"><div class="detail"><div class="detail-single"><div class="type">Perfect</div><div class="value perfect">100</div></div><div class="detail-single"><div class="type">Good</div><div class="value good">0</div></div><div class="detail-single"><div class="type">Bad</div><div class="value bad">0</div></div><div class="detail-single"><div class="type">Miss</div><div class="value miss">0</div></div></div><div class="max-combo">Max Combo 100</div></div><div class="actions"><button onclick="history.go(0)">Refresh</button> <button class="big highlight" onclick="restartGame()">Restart</button> <button class="big highlight" onclick="exitGame()">Exit</button></div></div><div class="game-paused"><div class="title">Game paused</div><div class="action"><button onclick="fullscreen.toggle(document.body, false)">Fullscreen</button> <button onclick="exitGame()">Exit</button> <button onclick="restartGame()">Restart</button> <button onclick="pauseGame()">Continue</button></div></div><div class="error-window"><div>An error has just occurred, if you're sure this is not caused by you, please <a href="https://github.com/doudou0720/phi-chart-render/issues/new/choose" target="_blank">report it on GitHub</a>. <button class="close">Close</button></div><pre><code class="content">Test Text Not A Real Error</code></pre></div></body></html>
