@@ -6,38 +6,50 @@ import Note from '../note';
 import utils from './utils';
 import { Color } from 'pixi.js';
 
+// 计算时间间隔
 const calcBetweenTime = 0.125;
+
+/**
+ * 缓动函数数组
+ * 包含各种常用的缓动函数，用于动画插值计算
+ */
 const Easing = [
-    (x) => x,
-    (x) => Math.sin((x * Math.PI) / 2),
-    (x) => 1 - Math.cos((x * Math.PI) / 2),
-    (x) => 1 - (1 - x) * (1 - x),
-    (x) => x * x,
-    (x) => -(Math.cos(Math.PI * x) - 1) / 2,
-    (x) => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2,
-    (x) => 1 - Math.pow(1 - x, 3),
-    (x) => x * x * x,
-    (x) => 1 - Math.pow(1 - x, 4),
-    (x) => x * x * x * x,
-    (x) => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2,
-    (x) => x < 0.5 ? 8 * x * x * x * x : 1 - Math.pow(-2 * x + 2, 4) / 2,
-    (x) => 1 - Math.pow(1 - x, 5),
-    (x) => x * x * x * x * x,
-    (x) => x === 1 ? 1 : 1 - Math.pow(2, -10 * x),
-    (x) => x === 0 ? 0 : Math.pow(2, 10 * x - 10),
-    (x) => Math.sqrt(1 - Math.pow(x - 1, 2)),
-    (x) => 1 - Math.sqrt(1 - Math.pow(x, 2)),
-    (x) => 1 + 2.70158 * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2),
-    (x) => 2.70158 * x * x * x - 1.70158 * x * x,
-    (x) => x < 0.5 ? (1 - Math.sqrt(1 - Math.pow(2 * x, 2))) / 2 : (Math.sqrt(1 - Math.pow(-2 * x + 2, 2)) + 1) / 2,
-    (x) => x < 0.5 ? (Math.pow(2 * x, 2) * ((2.594910 + 1) * 2 * x - 2.594910)) / 2 : (Math.pow(2 * x - 2, 2) * ((2.594910 + 1) * (x * 2 - 2) + 2.594910) + 2) / 2,
-    (x) => x === 0 ? 0 : x === 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1,
-    (x) => x === 0 ? 0 : x === 1 ? 1 : -Math.pow(2, 10 * x - 10) * Math.sin((x * 10 - 10.75) * ((2 * Math.PI) / 3)),
-    (x) => x < 1 / 2.75 ? 7.5625 * x * x : x < 2 / 2.75 ? 7.5625 * (x -= 1.5 / 2.75) * x + 0.75 : x < 2.5 / 2.75 ? 7.5625 * (x -= 2.25 / 2.75) * x + 0.9375 : 7.5625 * (x -= 2.625 / 2.75) * x + 0.984375,
-    (x) => 1 - Easing[25](1 - x),
-    (x) => x < 0.5 ? (1 - Easing[25](1 - 2 * x)) / 2 : (1 + Easing[25](2 * x - 1)) / 2
+    (x) => x, // 线性
+    (x) => Math.sin((x * Math.PI) / 2), // 正弦缓入
+    (x) => 1 - Math.cos((x * Math.PI) / 2), // 余弦缓出
+    (x) => 1 - (1 - x) * (1 - x), // 平方缓出
+    (x) => x * x, // 平方缓入
+    (x) => -(Math.cos(Math.PI * x) - 1) / 2, // 正弦缓入缓出
+    (x) => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2, // 平方缓入缓出
+    (x) => 1 - Math.pow(1 - x, 3), // 立方缓出
+    (x) => x * x * x, // 立方缓入
+    (x) => 1 - Math.pow(1 - x, 4), // 四次缓出
+    (x) => x * x * x * x, // 四次缓入
+    (x) => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2, // 立方缓入缓出
+    (x) => x < 0.5 ? 8 * x * x * x * x : 1 - Math.pow(-2 * x + 2, 4) / 2, // 四次缓入缓出
+    (x) => 1 - Math.pow(1 - x, 5), // 五次缓出
+    (x) => x * x * x * x * x, // 五次缓入
+    (x) => x === 1 ? 1 : 1 - Math.pow(2, -10 * x), // 指数缓出
+    (x) => x === 0 ? 0 : Math.pow(2, 10 * x - 10), // 指数缓入
+    (x) => Math.sqrt(1 - Math.pow(x - 1, 2)), // 圆形缓出
+    (x) => 1 - Math.sqrt(1 - Math.pow(x, 2)), // 圆形缓入
+    (x) => 1 + 2.70158 * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2), // 弹跳缓出
+    (x) => 2.70158 * x * x * x - 1.70158 * x * x, // 弹跳缓入
+    (x) => x < 0.5 ? (1 - Math.sqrt(1 - Math.pow(2 * x, 2))) / 2 : (Math.sqrt(1 - Math.pow(-2 * x + 2, 2)) + 1) / 2, // 圆形缓入缓出
+    (x) => x < 0.5 ? (Math.pow(2 * x, 2) * ((2.594910 + 1) * 2 * x - 2.594910)) / 2 : (Math.pow(2 * x - 2, 2) * ((2.594910 + 1) * (x * 2 - 2) + 2.594910) + 2) / 2, // 自定义缓动
+    (x) => x === 0 ? 0 : x === 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1, // 正弦指数缓出
+    (x) => x === 0 ? 0 : x === 1 ? 1 : -Math.pow(2, 10 * x - 10) * Math.sin((x * 10 - 10.75) * ((2 * Math.PI) / 3)), // 正弦指数缓入
+    (x) => x < 1 / 2.75 ? 7.5625 * x * x : x < 2 / 2.75 ? 7.5625 * (x -= 1.5 / 2.75) * x + 0.75 : x < 2.5 / 2.75 ? 7.5625 * (x -= 2.25 / 2.75) * x + 0.9375 : 7.5625 * (x -= 2.625 / 2.75) * x + 0.984375, // 多段缓动
+    (x) => 1 - Easing[25](1 - x), // 弹跳缓入
+    (x) => x < 0.5 ? (1 - Easing[25](1 - 2 * x)) / 2 : (1 + Easing[25](2 * x - 1)) / 2 // 弹跳缓入缓出
 ];
 
+/**
+ * Re:PhiEdit格式谱面转换器
+ * 将Re:PhiEdit格式的谱面数据转换为内部使用的谱面对象
+ * @param {Object} _chart - 原始谱面数据对象
+ * @returns {Chart} 转换后的谱面对象
+ */
 export default function RePhiEditChartConverter(_chart)
 {
     let notes = [];
@@ -76,6 +88,7 @@ export default function RePhiEditChartConverter(_chart)
         rawChart.BPMList.sort((a, b) => b.startBeat - a.startBeat);
     }
 
+    // 处理每条判定线
     rawChart.judgeLineList.forEach((_judgeline, judgelineIndex) =>
     {
         let judgeline = new Judgeline({
@@ -86,6 +99,7 @@ export default function RePhiEditChartConverter(_chart)
             isCover    : _judgeline.isCover == 1
         });
 
+        // 检查是否使用了attachUI特性
         if (_judgeline.attachUI && _judgeline.attachUI != '')
         {
             console.warn('Line ' + judgelineIndex + ' is using \'attachUI\' feature, ignored this line.\nPlease note that all notes on this line will also be ignored.');
@@ -157,6 +171,7 @@ export default function RePhiEditChartConverter(_chart)
             }
             eventLayer.sort();
 
+            // 如果事件层为空则跳过
             if (
                 eventLayer.speed.length <= 0 &&
                 eventLayer.moveX.length <= 0 &&
@@ -300,6 +315,7 @@ export default function RePhiEditChartConverter(_chart)
             {
                 let inclineEvents = utils.calculateEventsBeat(_judgeline.extended.inclineEvents);
 
+                // 检查是否为默认值
                 if (inclineEvents.length == 1 &&
                     (inclineEvents[0].startTime == 0 && inclineEvents[0].endTime == 1) &&
                     (inclineEvents[0].start == 0 && inclineEvents[0].end == 0)
@@ -322,6 +338,7 @@ export default function RePhiEditChartConverter(_chart)
             }
         }
 
+        // 计算Note控制参数
         judgeline.noteControls.alpha = calculateNoteControls(_judgeline.alphaControl, 'alpha', 1);
         judgeline.noteControls.scale = calculateNoteControls(_judgeline.sizeControl, 'size', 1);
         judgeline.noteControls.x = calculateNoteControls(_judgeline.posControl, 'pos', 1);
@@ -407,6 +424,7 @@ export default function RePhiEditChartConverter(_chart)
     chart.judgelines.sort((a, b) => a.id - b.id);
     chart.notes.sort((a, b) => a.time - b.time);
 
+    // 处理父级判定线引用
     chart.judgelines.forEach((judgeline, judgelineIndex, judgelines) =>
     {
         if (!isNaN(judgeline.parentLine) && judgeline.parentLine >= 0)
@@ -431,10 +449,16 @@ export default function RePhiEditChartConverter(_chart)
     return chart;
 }
 
+/**
+ * 转换谱面格式
+ * @param {Object} rawChart - 原始谱面数据
+ * @returns {Object} 转换后的谱面数据
+ */
 function convertChartFormat(rawChart)
 {
     let chart = JSON.parse(JSON.stringify(rawChart));
     
+    // 根据版本处理不同格式
     if (chart.META.RPEVersion <= 100)
     {
         chart.judgeLineList.forEach((judgeline) =>
@@ -469,6 +493,7 @@ function convertChartFormat(rawChart)
         
     }
 
+    // 检查版本兼容性
     if (chart.META.RPEVersion > 123)
     {
         console.warn('Unsupported chart version: ' + chart.META.RPEVersion + ', some features may not supported');
@@ -477,6 +502,11 @@ function convertChartFormat(rawChart)
     return chart;
 }
 
+/**
+ * 计算文本事件缓动
+ * @param {Object} event - 事件对象
+ * @returns {Array} 处理后的事件数组
+ */
 function calculateTextEventEase(event)
 {
     const _calcBetweenTime = calcBetweenTime / 2;
@@ -487,6 +517,7 @@ function calculateTextEventEase(event)
 
     if (!event) return [];
 
+    // 处理数字文本
     if (isNumberRequired)
     {
         const startNum = Number(event.start.match(NumberReg)[1]) || 0;
@@ -505,6 +536,7 @@ function calculateTextEventEase(event)
                 currentNum = Math.round(currentNum);
             }
 
+            // 合并相同值的事件
             if (result[result.length - 1] && result[result.length - 1].value == currentNum)
             {
                 result[result.length - 1].endTime = nextTime;
@@ -518,12 +550,14 @@ function calculateTextEventEase(event)
             });
         }
     }
+    // 处理普通文本
     else if (event.start != event.end)
     {
         const startText = event.start.length <= event.end.length ? event.start : event.end;
         const endText = event.start.length <= event.end.length ? event.end : event.start;
         const isProgressive = startText == '' || endText.indexOf(startText) === 0;
 
+        // 渐进式文本变化
         if (isProgressive)
         {
             let currentText = [];
@@ -535,6 +569,7 @@ function calculateTextEventEase(event)
                 let nextTime = (event.startTime + ((timeIndex + 1) * _calcBetweenTime)) <= event.endTime ? event.startTime + ((timeIndex + 1) * _calcBetweenTime) : event.endTime;
                 let currentTextIndex = Math.floor(_valueCalculator(event, nextTime, startText.length, endText.length - 1));
 
+                // 处理文本索引变化
                 if (lastTextIndex + 1 < currentTextIndex)
                 {
                     for (let extraTextIndex = lastTextIndex + 1; extraTextIndex < currentTextIndex; extraTextIndex++)
@@ -548,12 +583,15 @@ function calculateTextEventEase(event)
                 }
 
                 if (endText[currentTextIndex]) currentText.push(endText[currentTextIndex]);
+                
+                // 合并相同值的事件
                 if (result[result.length - 1] && result[result.length - 1].value == currentText.join(''))
                 {
                     result[result.length - 1].endTime = nextTime;
                     continue;
                 }
 
+                // 处理最后一个事件
                 if (nextTime == event.endTime)
                 {
                     result.push({
@@ -574,6 +612,7 @@ function calculateTextEventEase(event)
                 lastTextIndex = currentTextIndex;
             }
         }
+        // 非渐进式文本变化
         else
         {
             result.push({
@@ -588,6 +627,7 @@ function calculateTextEventEase(event)
             });
         }
     }
+    // 文本值相同
     else
     {
         result.push({
@@ -600,6 +640,11 @@ function calculateTextEventEase(event)
     return result;
 }
 
+/**
+ * 计算颜色事件缓动
+ * @param {Object} event - 事件对象
+ * @returns {Array} 处理后的事件数组
+ */
 function calculateColorEventEase(event)
 {
     let timeBetween = event.endTime - event.startTime;
@@ -607,6 +652,7 @@ function calculateColorEventEase(event)
 
     if (!event) return [];
 
+    // 处理颜色变化
     if (
         event.start[0] != event.end[0] ||
         event.start[1] != event.end[1] ||
@@ -628,6 +674,7 @@ function calculateColorEventEase(event)
             });
         }
     }
+    // 颜色值相同
     else
     {
         result.push({
@@ -644,8 +691,16 @@ function calculateColorEventEase(event)
     return result;
 }
 
+/**
+ * 计算Note控制参数
+ * @param {Array} _noteControls - 控制点数组
+ * @param {string} valueName - 值名称
+ * @param {number} defaultValue - 默认值
+ * @returns {Array} 处理后的控制点数组
+ */
 function calculateNoteControls(_noteControls, valueName = 'alpha', defaultValue = 1)
 {
+    // 检查控制点数组是否有效
     if (!_noteControls || !(_noteControls instanceof Array) || _noteControls.length <= 0) return [];
     if (
         _noteControls.length == 2 &&
@@ -656,6 +711,7 @@ function calculateNoteControls(_noteControls, valueName = 'alpha', defaultValue 
     let noteControls = _noteControls.slice().sort((a, b) => b.x - a.x);
     let result = [];
 
+    // 处理每个控制点
     for (let controlIndex = 0; controlIndex < noteControls.length; controlIndex++)
     {
         const control = noteControls[controlIndex];
@@ -669,12 +725,18 @@ function calculateNoteControls(_noteControls, valueName = 'alpha', defaultValue 
 
     return result;
 
+    /**
+     * 整理相同值的控制点
+     * @param {Array} controls - 控制点数组
+     * @returns {Array} 处理后的控制点数组
+     */
     function arrangeSameValueControls(controls)
     {
         let result = [];
 
         for (const control of controls)
         {
+            // 合并相同值的控制点
             if (result.length > 0 && result[result.length - 1].value == control.value)
             {
                 continue;
@@ -686,6 +748,13 @@ function calculateNoteControls(_noteControls, valueName = 'alpha', defaultValue 
         return result.slice();
     }
 
+    /**
+     * 分离Note控制点
+     * @param {Object} control - 控制点
+     * @param {Object} nextControl - 下一个控制点
+     * @param {string} valueName - 值名称
+     * @returns {Array} 处理后的控制点数组
+     */
     function separateNoteControl(control, nextControl = null, valueName = 'alpha')
     {
         let result = [];
@@ -694,16 +763,19 @@ function calculateNoteControls(_noteControls, valueName = 'alpha', defaultValue 
         let easingFunc = Easing[control.easing - 1];
         let currentX = control.x;
 
+        // 值相同则直接返回
         if (control[valueName] == (nextControl ? nextControl[valueName] : control[valueName]))
         {
             return [ { _y: control.x / 900, y: control.x, value: control[valueName] } ];
         }
 
+        // 按步长分离控制点
         while (currentX > (nextControl ? nextControl.x : 0))
         {
             let currentPercent = (control.x - currentX) / xBetween;
             let currentValue = parseFloat((control[valueName] - valueBetween * easingFunc(currentPercent)).toFixed(2));
 
+            // 合并相同值的控制点
             if (result.length > 0 && parseFloat((result[result.length - 1].value).toFixed(2)) == currentValue)
             {
                 result[result.length - 1]._y = currentX / 900;
@@ -721,6 +793,7 @@ function calculateNoteControls(_noteControls, valueName = 'alpha', defaultValue 
             currentX -= 2;
         }
 
+        // 处理最后一个控制点
         if (result[result.length - 1].value != (nextControl ? nextControl[valueName] : control[valueName]))
         {
             result.push({
@@ -734,11 +807,17 @@ function calculateNoteControls(_noteControls, valueName = 'alpha', defaultValue 
     }
 }
 
+/**
+ * 分离速度事件
+ * @param {Object} event - 事件对象
+ * @returns {Array} 处理后的事件数组
+ */
 function separateSpeedEvent(event)
 {
     let result = [];
     let timeBetween = event.endTime - event.startTime;
 
+    // 处理速度变化
     if (event.start != event.end)
     {
         for (let timeIndex = 0, timeCount = Math.ceil(timeBetween / calcBetweenTime); timeIndex < timeCount; timeIndex++)
@@ -753,6 +832,7 @@ function separateSpeedEvent(event)
             });
         }
     }
+    // 速度值相同
     else
     {
         result.push({
@@ -765,6 +845,14 @@ function separateSpeedEvent(event)
     return result;
 }
 
+/**
+ * 值计算器
+ * @param {Object} event - 事件对象
+ * @param {number} currentTime - 当前时间
+ * @param {number} startValue - 起始值
+ * @param {number} endValue - 结束值
+ * @returns {number} 计算后的值
+ */
 function _valueCalculator(event, currentTime, startValue = 0, endValue = 1)
 {
     if (startValue == endValue) return startValue;

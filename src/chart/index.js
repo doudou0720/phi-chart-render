@@ -3,31 +3,46 @@ import * as Convert from './convert';
 import md5Hash from 'md5-js';
 import { Sprite, Graphics, Text } from 'pixi.js';
 
+/**
+ * 谱面类
+ * 表示一个完整的Phigros谱面，包含判定线、音符、BPM列表等信息
+ */
 export default class Chart
 {
+    /**
+     * 构造函数
+     * @param {Object} params - 参数对象
+     */
     constructor(params = {})
     {
-        this.judgelines          = [];
-        this.notes               = [];
-        this.bpmList             = [];
-        this.offset              = verifyNum(params.offset, 0);
-        this.isLineTextureReaded = false;
+        this.judgelines          = [];                          // 判定线数组
+        this.notes               = [];                           // 音符数组
+        this.bpmList             = [];                           // BPM列表
+        this.offset              = verifyNum(params.offset, 0); // 偏移量
+        this.isLineTextureReaded = false;                       // 判定线纹理是否已读取
 
-        this.music      = params.music ? params.music : null;
-        this.bg         = params.bg ? params.bg : null;
+        this.music      = params.music ? params.music : null;   // 音乐文件
+        this.bg         = params.bg ? params.bg : null;         // 背景图片
 
-        this.info       = {
-            name      : params.name,
-            artist    : params.artist,
-            author    : params.author,
-            bgAuthor  : params.bgAuthor,
-            difficult : params.difficult,
-            md5       : params.md5
+        this.info       = {                                     // 谱面信息
+            name      : params.name,                            // 歌曲名称
+            artist    : params.artist,                          // 艺术家
+            author    : params.author,                          // 谱面作者
+            bgAuthor  : params.bgAuthor,                        // 背景图片作者
+            difficult : params.difficult,                       // 难度信息
+            md5       : params.md5                              // MD5哈希值
         };
 
-        this.sprites = {};
+        this.sprites = {};                                      // 精灵对象
     }
 
+    /**
+     * 从原始谱面数据创建Chart实例
+     * @param {Object|string} rawChart - 原始谱面数据
+     * @param {Object} _chartInfo - 谱面信息
+     * @param {Array} _chartLineTexture - 判定线纹理信息
+     * @returns {Chart} 创建的Chart实例
+     */
     static from(rawChart, _chartInfo = {}, _chartLineTexture = [])
     {
         let chart;
@@ -77,6 +92,7 @@ export default class Chart
             md5       : chartMD5
         };
 
+        // 处理判定线事件
         chart.judgelines.forEach((judgeline) =>
         {
             judgeline.eventLayers.forEach((eventLayer) =>
@@ -88,6 +104,7 @@ export default class Chart
                 eventLayer.alpha = arrangeLineEvents(eventLayer.alpha);
             });
 
+            // 处理判定线扩展事件
             for (const name in judgeline.extendEvent)
             {
                 if (name !== 'color' && name !== 'text')
@@ -99,8 +116,10 @@ export default class Chart
             judgeline.sortEvent();
         });
 
+        // 读取判定线纹理信息
         chart.readLineTextureInfo(_chartLineTexture);
 
+        // 对判定线按父子关系和ID排序
         chart.judgelines.sort((a, b) =>
         {
             if (a.parentLine && b.parentLine)
@@ -125,6 +144,10 @@ export default class Chart
         return chart;
     }
 
+    /**
+     * 读取判定线纹理信息
+     * @param {Array} infos - 纹理信息数组
+     */
     readLineTextureInfo(infos = [])
     {
         if (this.isLineTextureReaded) return;
@@ -161,10 +184,23 @@ export default class Chart
         if (isReaded) this.isLineTextureReaded = true;
     }
 
+    /**
+     * 创建精灵对象
+     * @param {Container} stage - Pixi舞台容器
+     * @param {Object} size - 画布尺寸
+     * @param {Object} textures - 纹理对象
+     * @param {Container} uiStage - UI舞台容器
+     * @param {Object} zipFiles - ZIP文件对象
+     * @param {number} speed - 播放速度
+     * @param {number} bgDim - 背景暗化程度
+     * @param {boolean} multiNoteHL - 多押高亮
+     * @param {boolean} debug - 调试模式
+     */
     createSprites(stage, size, textures, uiStage = null, zipFiles = {}, speed = 1, bgDim = 0.5, multiNoteHL = true, debug = false)
     {
-        let linesWithZIndex = [];
+        let linesWithZIndex = []; // 带Z轴索引的判定线
 
+        // 创建背景精灵
         if (this.bg)
         {
             this.sprites.bg = new Sprite(this.bg);
@@ -186,6 +222,7 @@ export default class Chart
             stage.addChild(this.sprites.bg);
         }
 
+        // 创建判定线精灵
         this.judgelines.forEach((judgeline, index) =>
         {
             judgeline.createSprite(textures, zipFiles, debug);
@@ -203,6 +240,7 @@ export default class Chart
                 stage.addChild(judgeline.debugSprite);
             }
 
+            // 处理官方缩放
             if (judgeline.texture && judgeline.useOfficialScale)
             {
                 let oldScaleY = judgeline.extendEvent.scaleY[0].start;
@@ -214,6 +252,7 @@ export default class Chart
             }
         });
 
+        // 按Z轴索引排序
         linesWithZIndex.sort((a, b) => a.zIndex - b.zIndex);
         linesWithZIndex.forEach((judgeline, index) =>
         {
@@ -221,6 +260,7 @@ export default class Chart
             if (judgeline.debugSprite) judgeline.debugSprite.zIndex = 999 + judgeline.sprite.zIndex;
         });
 
+        // 创建音符精灵
         this.notes.forEach((note, index) =>
         {
             note.createSprite(textures, zipFiles, multiNoteHL, debug);
@@ -235,6 +275,7 @@ export default class Chart
             }
         });
 
+        // 创建信息文本精灵
         this.sprites.info = {};
 
         this.sprites.info.songName = new Text((this.info.name || 'Untitled') + ((Math.round(speed * 100) !== 100) ? ' (x' + speed.toFixed(2) + ')' : ''), {
@@ -247,7 +288,6 @@ export default class Chart
         if (uiStage) uiStage.addChild(this.sprites.info.songName);
         else stage.addChild(this.sprites.info.songName);
 
-
         this.sprites.info.songDiff = new Text((this.info.difficult || 'SP Lv.?'), {
             fontFamily: 'MiSans',
             fill: 0xFFFFFF
@@ -259,10 +299,16 @@ export default class Chart
         else stage.addChild(this.sprites.info.songDiff);
     }
 
+    /**
+     * 调整精灵尺寸
+     * @param {Object} size - 画布尺寸
+     * @param {boolean} isEnded - 是否结束
+     */
     resizeSprites(size, isEnded)
     {
         this.renderSize = size;
 
+        // 调整背景尺寸
         if (this.sprites.bg)
         {
             let bgScaleWidth = this.renderSize.width / this.sprites.bg.texture.width;
@@ -273,6 +319,7 @@ export default class Chart
             this.sprites.bg.position.set(this.renderSize.width / 2, this.renderSize.height / 2);
         }
 
+        // 调整判定线尺寸
         if (this.judgelines && this.judgelines.length > 0)
         {
             this.judgelines.forEach((judgeline) =>
@@ -299,6 +346,7 @@ export default class Chart
                 judgeline.sprite.position.x = judgeline.x * this.renderSize.width;
                 judgeline.sprite.position.y = judgeline.y * this.renderSize.height;
 
+                // 调整音符控制参数
                 for (const name in judgeline.noteControls)
                 {
                     for (const control of judgeline.noteControls[name])
@@ -312,6 +360,7 @@ export default class Chart
             });
         }
 
+        // 调整音符尺寸
         if (this.notes && this.notes.length > 0)
         {
             this.notes.forEach((note) =>
@@ -330,6 +379,7 @@ export default class Chart
             });
         }
 
+        // 调整信息文本位置和尺寸
         this.sprites.info.songName.style.fontSize = size.heightPercent * 27;
         this.sprites.info.songName.position.x = size.heightPercent * 57;
         this.sprites.info.songName.position.y = size.height - size.heightPercent * 66;
@@ -339,6 +389,9 @@ export default class Chart
         this.sprites.info.songDiff.position.y = size.height - size.heightPercent * 42;
     }
 
+    /**
+     * 重置谱面状态
+     */
     reset()
     {
         this.holdBetween = this.bpmList[0].holdBetween;
@@ -353,8 +406,12 @@ export default class Chart
         });
     }
 
+    /**
+     * 销毁精灵对象
+     */
     destroySprites()
     {
+        // 销毁判定线精灵
         this.judgelines.forEach((judgeline) =>
         {
             if (!judgeline.sprite) return;
@@ -368,6 +425,8 @@ export default class Chart
                 judgeline.debugSprite = undefined;
             }
         });
+        
+        // 销毁音符精灵
         this.notes.forEach((note) =>
         {
             if (!note.sprite) return;
@@ -382,12 +441,14 @@ export default class Chart
             }
         });
 
+        // 销毁背景精灵
         if (this.sprites.bg)
         {
             this.sprites.bg.destroy();
             this.sprites.bg = undefined;
         }
 
+        // 销毁信息文本精灵
         this.sprites.info.songName.destroy();
         this.sprites.info.songName = undefined;
 
@@ -397,10 +458,18 @@ export default class Chart
         this.sprites.info = undefined;
     }
 
+    /**
+     * 获取总音符数
+     * @returns {number} 总音符数
+     */
     get totalNotes() {
         return this.notes.length;
     }
 
+    /**
+     * 获取真实音符数（非假音符）
+     * @returns {number} 真实音符数
+     */
     get totalRealNotes() {
         let result = 0;
         this.notes.forEach((note) => {
@@ -409,6 +478,10 @@ export default class Chart
         return result;
     }
 
+    /**
+     * 获取假音符数
+     * @returns {number} 假音符数
+     */
     get totalFakeNotes() {
         let result = 0;
         this.notes.forEach((note) => {
@@ -418,7 +491,11 @@ export default class Chart
     }
 }
 
-
+/**
+ * 整理判定线事件
+ * @param {Array} events - 事件数组
+ * @returns {Array} 整理后的事件数组
+ */
 function arrangeLineEvents(events) {
     let oldEvents = events.slice();
     let newEvents2 = [];
@@ -506,7 +583,11 @@ function arrangeLineEvents(events) {
     return newEvents.slice();
 }
 
-
+/**
+ * 整理单值判定线事件
+ * @param {Array} events - 事件数组
+ * @returns {Array} 整理后的事件数组
+ */
 function arrangeSingleValueLineEvents(events) {
     let oldEvents = events.slice();
     let newEvents = [ oldEvents.shift() ];

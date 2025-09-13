@@ -1,7 +1,7 @@
 import { number as verifyNum } from '@/verify';
 import Bezier from 'bezier-easing';
 
-const calcBetweenTime = 0.125; // 1/32
+const calcBetweenTime = 0.125; // 1/32 计算时间间隔
 
 /**
  * 将一个事件的拍数数组转换为拍数小数
@@ -49,6 +49,7 @@ function valueCalculator(event, Easings, currentTime, easingsOffset = 1)
     let timePercentEnd = (currentTime - event.startTime) / (event.endTime - event.startTime);
     let timePercentStart = 1 - timePercentEnd;
 
+    // 使用贝塞尔曲线计算值
     if (event.bezier === 1)
     {
         let bezier = Bezier(event.bezierPoints[0], event.bezierPoints[1], event.bezierPoints[2], event.bezierPoints[3]);
@@ -56,6 +57,7 @@ function valueCalculator(event, Easings, currentTime, easingsOffset = 1)
     }
     else
     {
+        // 使用缓动函数计算值
         let easeFunction = Easings[event.easingType - easingsOffset] ? Easings[event.easingType - easingsOffset] : Easings[0];
         let easePercent = easeFunction(verifyNum(event.easingLeft, 0, 0, 1) * timePercentStart + verifyNum(event.easingRight, 1, 0, 1) * timePercentEnd);
         let easePercentStart = easeFunction(verifyNum(event.easingLeft, 0, 0, 1));
@@ -121,6 +123,7 @@ function calculateEventEase(event, Easings, easingsOffset = 1, forceLinear = fal
 
     if (!event) return [];
 
+    // 如果事件有缓动效果且起始值和结束值不同，则拆分事件
     if (
         (
             event.bezier == 1 ||
@@ -131,6 +134,7 @@ function calculateEventEase(event, Easings, easingsOffset = 1, forceLinear = fal
         ) &&
         event.start != event.end
     ) {
+        // 按时间间隔拆分事件
         for (let timeIndex = 0, timeCount = Math.ceil(timeBetween / calcBetweenTime); timeIndex < timeCount; timeIndex++)
         {
             let currentTime = event.startTime + (timeIndex * calcBetweenTime);
@@ -198,6 +202,7 @@ function calculateHoldBetween(_bpmList)
 
     result.sort((a, b) => a.startTime - b.startTime);
 
+    // 设置默认值
     if (result.length > 0)
     {
         result[0].startTime = 1 - 1000;
@@ -231,6 +236,7 @@ function arrangeSameValueEvent(_events)
 
     for (const event of events)
     {
+        // 如果相邻事件的起始值和结束值都相同，则合并事件
         if (
             result[result.length - 1].start == result[result.length - 1].end &&
             event.start == event.end &&
@@ -261,6 +267,7 @@ function arrangeSameSingleValueEvent(events)
     for (let i of events) {
         let lastEvent = newEvents[newEvents.length - 1];
         
+        // 如果相邻事件的值相同，则合并事件
         if (!lastEvent || lastEvent.value != i.value) {
             newEvents.push(i);
         } else {
@@ -271,6 +278,7 @@ function arrangeSameSingleValueEvent(events)
     return newEvents.slice();
 }
 
+// 导出工具函数
 export default {
     CalcBetweenTime: calcBetweenTime,
 

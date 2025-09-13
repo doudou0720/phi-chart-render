@@ -4,6 +4,12 @@ import EventLayer from '../eventlayer';
 import Note from '../note';
 import utils from './utils';
 
+/**
+ * 官方格式谱面转换器
+ * 将官方格式的谱面数据转换为内部使用的谱面对象
+ * @param {Object} _chart - 原始谱面数据
+ * @returns {Chart} 转换后的谱面对象
+ */
 export default function OfficialChartConverter(_chart)
 {
     let chart = new Chart();
@@ -15,12 +21,14 @@ export default function OfficialChartConverter(_chart)
 
     chart.offset = rawChart.offset;
 
+    // 处理每条判定线
     rawChart.judgeLineList.forEach((_judgeline, index) =>
     {
         let judgeline = new Judgeline({ id: index });
         let events = new EventLayer();
         let judgelineNotes = [];
 
+        // 处理速度事件
         _judgeline.speedEvents.forEach((e) =>
         {
             events.speed.push({
@@ -29,6 +37,8 @@ export default function OfficialChartConverter(_chart)
                 value         : e.value
             });
         });
+        
+        // 处理判定线移动事件
         _judgeline.judgeLineMoveEvents.forEach((e) => 
         {
             events.moveX.push({
@@ -44,6 +54,8 @@ export default function OfficialChartConverter(_chart)
                 end       : e.end2 - 0.5
             });
         });
+        
+        // 处理判定线旋转事件
         _judgeline.judgeLineRotateEvents.forEach((e) => 
         {
             events.rotate.push({
@@ -53,6 +65,8 @@ export default function OfficialChartConverter(_chart)
                 end       : -(Math.PI / 180) * e.end
             });
         });
+        
+        // 处理判定线消失事件
         _judgeline.judgeLineDisappearEvents.forEach((e) =>
         {
             events.alpha.push({
@@ -66,13 +80,16 @@ export default function OfficialChartConverter(_chart)
         judgeline.eventLayers.push(events);
         judgeline.sortEvent();
 
+        // 整理事件值
         judgeline.eventLayers[0].moveX = utils.arrangeSameValueEvent(judgeline.eventLayers[0].moveX);
         judgeline.eventLayers[0].moveY = utils.arrangeSameValueEvent(judgeline.eventLayers[0].moveY);
         judgeline.eventLayers[0].rotate = utils.arrangeSameValueEvent(judgeline.eventLayers[0].rotate);
         judgeline.eventLayers[0].alpha = utils.arrangeSameValueEvent(judgeline.eventLayers[0].alpha);
 
+        // 计算地板位置
         judgeline.calcFloorPosition();
 
+        // 处理上方音符
         _judgeline.notesAbove.forEach((rawNote, rawNoteIndex) =>
         {
             rawNote.judgeline = judgeline;
@@ -82,6 +99,8 @@ export default function OfficialChartConverter(_chart)
             // let note = pushNote(rawNote, judgeline, rawNoteIndex, _judgeline.bpm, true);
             judgelineNotes.push(rawNote);
         });
+        
+        // 处理下方音符
         _judgeline.notesBelow.forEach((rawNote, rawNoteIndex) =>
         {
             rawNote.judgeline = judgeline;
@@ -92,6 +111,7 @@ export default function OfficialChartConverter(_chart)
             judgelineNotes.push(rawNote);
         });
 
+        // 按时间排序音符并计算同时音符数量
         judgelineNotes.sort((a, b) => a.time - b.time);
         judgelineNotes.forEach((note, noteIndex) =>
         {
@@ -104,6 +124,7 @@ export default function OfficialChartConverter(_chart)
         chart.judgelines.push(judgeline);
     });
 
+    // 按时间排序音符并创建Note对象
     notes.sort((a, b) => a.time - b.time);
     notes.forEach((note) =>
     {
@@ -112,6 +133,7 @@ export default function OfficialChartConverter(_chart)
     });
     chart.notes.sort((a, b) => a.time - b.time);
 
+    // 构建BPM列表
     notes.sort((a, b) => a.time - b.time);
     notes.forEach((note) =>
     {
@@ -141,6 +163,7 @@ export default function OfficialChartConverter(_chart)
     });
     bpmList.sort((a, b) => a.startTime - b.startTime);
 
+    // 设置BPM列表的起始和结束时间
     if (bpmList.length > 0)
     {
         bpmList[0].startTime = 1 - 1000;
@@ -160,6 +183,11 @@ export default function OfficialChartConverter(_chart)
 
     return chart;
 
+    /**
+     * 创建音符对象
+     * @param {Object} rawNote - 原始音符数据
+     * @returns {Note} 创建的音符对象
+     */
     function pushNote(rawNote)
     {
         rawNote.time = calcRealTime(rawNote.time, rawNote.bpm);
@@ -199,7 +227,11 @@ export default function OfficialChartConverter(_chart)
     }
 };
 
-
+/**
+ * 转换官方版本格式
+ * @param {Object} chart - 原始谱面数据
+ * @returns {Object} 转换后的谱面数据
+ */
 function convertOfficialVersion(chart)
 {
     let newChart = JSON.parse(JSON.stringify(chart));
@@ -213,6 +245,7 @@ function convertOfficialVersion(chart)
             {
                 let floorPosition = 0;
                 
+                // 处理速度事件
                 for (const x of i.speedEvents)
                 {
                     if (x.startTime < 0) x.startTime = 0;
@@ -220,12 +253,14 @@ function convertOfficialVersion(chart)
                     floorPosition += (x.endTime - x.startTime) * x.value / i.bpm * 1.875;
                 }
                 
+                // 处理消失事件
                 for (const x of i.judgeLineDisappearEvents)
                 {
                     x.start2 = 0;
                     x.end2   = 0;
                 }
                 
+                // 处理移动事件
                 for (const x of i.judgeLineMoveEvents)
                 {
                     x.start2 = x.start % 1e3 / 520;
@@ -234,6 +269,7 @@ function convertOfficialVersion(chart)
                     x.end    = parseInt(x.end / 1e3) / 880;
                 }
                 
+                // 处理旋转事件
                 for (const x of i.judgeLineRotateEvents)
                 {
                     x.start2 = 0;
@@ -251,6 +287,12 @@ function convertOfficialVersion(chart)
     return newChart;
 }
 
+/**
+ * 计算实际时间
+ * @param {number} time - 时间值
+ * @param {number} bpm - BPM值
+ * @returns {number} 实际时间
+ */
 function calcRealTime(time, bpm) {
     return time / bpm * 1.875;
 }

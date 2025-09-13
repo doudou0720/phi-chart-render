@@ -1,25 +1,40 @@
 import { bool as verifyBool } from '@/verify';
 import * as Reader from './reader';
 
-
+/**
+ * 特效类
+ * 用于管理和应用各种视觉特效，如着色器效果
+ */
 export default class Effect
 {
+    /**
+     * 构造函数
+     * @param {Object} params - 参数对象
+     */
     constructor(params)
     {
-        this.shader = params.shader;
-        this.startTime = params.startTime;
-        this.endTime = params.endTime;
-        this.isGlobal = verifyBool(params.isGlobal, false);
-        this.vars = {};
+        this.shader = params.shader;           // 着色器对象
+        this.startTime = params.startTime;     // 开始时间
+        this.endTime = params.endTime;         // 结束时间
+        this.isGlobal = verifyBool(params.isGlobal, false); // 是否为全局效果
+        this.vars = {};                        // 变量对象
 
         this.reset();
     }
 
+    /**
+     * 重置特效状态
+     */
     reset()
     {
         this._currentValue = (this.shader !== null && typeof this.shader !== 'string') ? this.shader.defaultValues : {};
     }
 
+    /**
+     * 从JSON数据创建特效对象
+     * @param {Object|string} json - JSON数据
+     * @returns {Array} 特效对象数组
+     */
     static from(json)
     {
         let result;
@@ -37,12 +52,18 @@ export default class Effect
         return result;
     }
     
+    /**
+     * 计算时间并更新着色器
+     * @param {number} currentTime - 当前时间
+     * @param {Array} screenSize - 屏幕尺寸 [width, height]
+     */
     calcTime(currentTime, screenSize)
     {
         if (this.shader === null) return;
 
         const { vars, shader, _currentValue } = this;
 
+        // 更新变量值
         for (const name in vars)
         {
             const values = vars[name];
@@ -50,10 +71,19 @@ export default class Effect
             else _currentValue[name] = values;
         }
 
+        // 更新着色器
         shader.update({ ..._currentValue, time: currentTime, screenSize: screenSize });
     }
 }
 
+/**
+ * 值计算器
+ * 根据时间计算变量的当前值
+ * @param {Array} values - 值数组
+ * @param {number} currentTime - 当前时间
+ * @param {*} defaultValue - 默认值
+ * @returns {*} 计算后的值
+ */
 function valueCalculator(values, currentTime, defaultValue)
 {
     for (let i = 0, length = values.length; i < length; i++)
@@ -72,13 +102,13 @@ function valueCalculator(values, currentTime, defaultValue)
     return defaultValue;
 }
 
-// The thing that needs to be done:
-// 1. Calculate values in ./game/ticker (Now pre-calced)
-// 2. Integrate effects into the chart (./chart/index)
-// 3. Update uniforms in ./game/index
-// If there's anything left that's probably bugfixing.
+// 需要完成的事项:
+// 1. 在 ./game/ticker 中计算值（现在预计算）
+// 2. 将特效集成到谱面中 (./chart/index)
+// 3. 在 ./game/index 中更新 uniforms
+// 如果还有其他事情，可能是bug修复。
 
-// Effects should act on Game rather than Chart since
-// the filter is loaded by Game and effected on Containers
+// 特效应作用于 Game 而不是 Chart，
+// 因为滤镜是由 Game 加载并应用于容器的
 
-// I guess now it's all done
+// 我想现在都完成了

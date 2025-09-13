@@ -7,6 +7,10 @@ import { Application, Container, Texture, Sprite, Graphics, Text, Rectangle, set
 
 PIXISettings.RENDER_OPTIONS.hello = true;
 
+/**
+ * 进度条缓存
+ * 创建一个用于显示进度条的纹理
+ */
 const ProgressBarCache = (() =>
 {
     const canvas = document.createElement('canvas');
@@ -25,6 +29,9 @@ const ProgressBarCache = (() =>
 })();
 
 /**
+  * 游戏类
+  * 管理整个游戏的渲染、音频、输入和判定等核心功能
+  * @param {Object} _params - 游戏参数对象
   * {
   *     render: {
   *         width?,
@@ -57,6 +64,10 @@ const ProgressBarCache = (() =>
  **/
 export default class Game
 {
+    /**
+     * 构造函数
+     * @param {Object} _params - 游戏参数
+     */
     constructor(_params)
     {
         let params = { ..._params };
@@ -65,10 +76,10 @@ export default class Game
         if (!params.settings) params.settings = {};
 
         /* ===== 加载谱面基本信息 ===== */
-        this.chart    = params.chart;
-        this.assets   = params.assets;
-        this.effects  = (!!params.settings.shader && params.effects instanceof Array && params.effects.length > 0) ? params.effects : [];
-        this.zipFiles = params.zipFiles;
+        this.chart    = params.chart;    // 谱面对象
+        this.assets   = params.assets;   // 资源对象
+        this.effects  = (!!params.settings.shader && params.effects instanceof Array && params.effects.length > 0) ? params.effects : []; // 特效数组
+        this.zipFiles = params.zipFiles; // ZIP文件对象
 
         if (!this.chart) throw new Error('You must select a chart to play');
         if (!this.assets) throw new Error('Render must use a texture object for creating sprites.');
@@ -125,56 +136,59 @@ export default class Game
             autoPlay       : verify.bool(params.settings.autoPlay, false)
         });
 
-        this.sprites = {};
-        this.functions = {
-            start: [],
-            tick: [],
-            pause: [],
-            end: []
+        this.sprites = {};      // 精灵对象
+        this.functions = {      // 回调函数对象
+            start: [],          // 开始回调
+            tick: [],           // 每帧回调
+            pause: [],          // 暂停回调
+            end: []             // 结束回调
         };
-        this.processors = {
-            judgeline: [],
-            note: []
+        this.processors = {     // 处理器对象
+            judgeline: [],      // 判定线处理器
+            note: []            // 音符处理器
         };
 
         /* ===== 用户设置暂存 ===== */
         this._settings = {
-            resolution     : verify.number(params.render.resolution, window.devicePixelRatio, 1),
-            noteScale      : verify.number(params.settings.noteScale, 8000),
-            bgDim          : verify.number(params.settings.bgDim, 0.5, 0, 1),
-            offset         : verify.number(params.settings.audioOffset, 0),
-            speed          : verify.number(params.settings.speed, 1, 0, 2),
-            showFPS        : verify.bool(params.settings.showFPS, true),
-            showInputPoint : verify.bool(params.settings.showInputPoint, true),
-            multiNoteHL    : verify.bool(params.settings.multiNoteHL, true),
-            showAPStatus   : verify.bool(params.settings.showAPStatus, true),
-            challengeMode  : verify.bool(params.settings.challengeMode, false),
-            autoPlay       : verify.bool(params.settings.autoPlay, false),
-            debug          : verify.bool(params.settings.debug, false),
-            shader         : verify.bool(params.settings.shader, true)
+            resolution     : verify.number(params.render.resolution, window.devicePixelRatio, 1),  // 分辨率
+            noteScale      : verify.number(params.settings.noteScale, 8000),                      // 音符缩放
+            bgDim          : verify.number(params.settings.bgDim, 0.5, 0, 1),                     // 背景暗化
+            offset         : verify.number(params.settings.audioOffset, 0),                      // 音频偏移
+            speed          : verify.number(params.settings.speed, 1, 0, 2),                       // 播放速度
+            showFPS        : verify.bool(params.settings.showFPS, true),                          // 显示FPS
+            showInputPoint : verify.bool(params.settings.showInputPoint, true),                   // 显示输入点
+            multiNoteHL    : verify.bool(params.settings.multiNoteHL, true),                      // 多押高亮
+            showAPStatus   : verify.bool(params.settings.showAPStatus, true),                     // 显示AP状态
+            challengeMode  : verify.bool(params.settings.challengeMode, false),                   // 挑战模式
+            autoPlay       : verify.bool(params.settings.autoPlay, false),                        // 自动播放
+            debug          : verify.bool(params.settings.debug, false),                           // 调试模式
+            shader         : verify.bool(params.settings.shader, true)                            // 着色器特效
         };
 
-        this._watermarkText = verify.text(params.watermark, 'github/MisaLiu/phi-chart-render');
+        this._watermarkText = verify.text(params.watermark, 'github/MisaLiu/phi-chart-render'); // 水印文本
 
-        this._audioOffset = 0;
-        this._animateStatus = NaN;
-        this._gameStartTime = NaN;
-        this._gameEndTime   = NaN;
-        this._isPaused = false;
-        this._isEnded = false;
-        this._currentEffects = [];
+        this._audioOffset = 0;          // 音频偏移
+        this._animateStatus = NaN;      // 动画状态
+        this._gameStartTime = NaN;      // 游戏开始时间
+        this._gameEndTime   = NaN;      // 游戏结束时间
+        this._isPaused = false;         // 是否暂停
+        this._isEnded = false;          // 是否结束
+        this._currentEffects = [];      // 当前特效
 
         this.resize = this.resize.bind(this);
 
+        // 绑定Ticker函数
         for (const name in TickerFunc)
         {
             this['_' + name] = TickerFunc[name].bind(this);
         }
+        // 绑定回调函数
         for (const name in CallbackFunc)
         {
             this['_' + name] = CallbackFunc[name].bind(this);
         }
 
+        // 检查播放速度范围
         if (this._settings.speed < 0.25) throw new Error('Speed too slow');
         else if (this._settings.speed > 2) throw new Error('Speed too fast');
 
@@ -183,6 +197,9 @@ export default class Game
         if (this._settings.autoPlay) window.addEventListener('keydown', this._onKeyPressCallback);
     }
 
+    /**
+     * 创建游戏精灵
+     */
     createSprites()
     {
         if (this.chart.bg)
@@ -205,6 +222,7 @@ export default class Game
             this.render.stage.addChild(this.render.mainContainerCover);
         }
 
+        // 创建谱面精灵
         this.chart.createSprites(
             this.render.gameContainer,
             this.render.sizer,
@@ -217,6 +235,7 @@ export default class Game
             this._settings.debug
         );
         
+        // 显示AP状态
         if (this._settings.showAPStatus)
         {
             for (const judgeline of this.chart.judgelines)
@@ -226,6 +245,7 @@ export default class Game
             };
         }
 
+        // 创建判定精灵
         this.judgement.stage = this.render.UIContainer;
         this.judgement.createSprites(this._settings.showInputPoint);
 
@@ -251,10 +271,10 @@ export default class Game
             this.sprites.pauseButton.texture.width * 2,
             this.sprites.pauseButton.texture.height * 2
         );
-        this.sprites.pauseButton.clickCount = 0;
-        this.sprites.pauseButton.lastClickTime = Date.now();
-        this.sprites.pauseButton.isEndRendering = false;
-        this.sprites.pauseButton.lastRenderTime = Date.now();
+        this.sprites.pauseButton.clickCount = 0;          // 点击次数
+        this.sprites.pauseButton.lastClickTime = Date.now(); // 上次点击时间
+        this.sprites.pauseButton.isEndRendering = false;     // 是否结束渲染
+        this.sprites.pauseButton.lastRenderTime = Date.now(); // 上次渲染时间
 
         this.sprites.pauseButton.anchor.set(1, 0);
         this.sprites.pauseButton.alpha = 0.5;
@@ -268,6 +288,7 @@ export default class Game
         if (this._settings.showAPStatus) this.sprites.fakeJudgeline.tint = 0xFFECA0;
         this.render.UIContainer.addChild(this.sprites.fakeJudgeline);
 
+        // FPS显示
         if (this._settings.showFPS)
         {
             this.render.fpsText = new Text('FPS: 0', {
@@ -282,6 +303,7 @@ export default class Game
             this.render.UIContainer.addChild(this.render.fpsText);
         }
 
+        // 水印
         this.render.watermark = new Text(this._watermarkText, {
             fontFamily: 'MiSans',
             align: 'right',
@@ -292,6 +314,7 @@ export default class Game
         this.render.watermark.zIndex = 999999;
         this.render.mainContainer.addChild(this.render.watermark);
 
+        // 对子元素按zIndex排序
         this.render.gameContainer.sortChildren();
         this.render.UIContainer.sortChildren();
         this.render.mainContainer.sortChildren();
@@ -330,6 +353,9 @@ export default class Game
         });
     }
 
+    /**
+     * 开始游戏
+     */
     start()
     {
         if (!this.render) return;
@@ -338,6 +364,7 @@ export default class Game
         this.resize();
         for (const effect of this.effects) effect.reset();
 
+        // FPS计数器
         if (this.render.fpsText)
         {
             this.render.fpsCounter = setInterval(() =>
@@ -346,15 +373,18 @@ export default class Game
             }, 500);
         }
 
+        // 设置音乐参数
         this.chart.music.speed = this._settings.speed;
         this.chart.music.onend = this._gameEndCallback;
 
+        // 设置游戏状态
         this._animateStatus = 0;
         this._gameStartTime = Date.now();
 
         this.chart.noteJudgeCallback = this.judgement.calcNote;
         this.render.ticker.add(this._calcTick);
 
+        // 隐藏判定线和音符
         for (const judgeline of this.chart.judgelines)
         {
             if (!judgeline.sprite) continue;
@@ -371,12 +401,16 @@ export default class Game
             if (note.hitsound) note.hitsound.volume = this.judgement._hitsoundVolume;
         };
 
+        // 设置音效音量
         for (const name in this.judgement.sounds)
         {
             this.judgement.sounds[name].volume = this.judgement._hitsoundVolume;
         }
     }
 
+    /**
+     * 暂停/继续游戏
+     */
     pause()
     {
         this._isPaused = !this._isPaused;
@@ -393,6 +427,9 @@ export default class Game
         }
     }
 
+    /**
+     * 重新开始游戏
+     */
     restart()
     {
         this.render.ticker.remove(this._calcTick);
@@ -415,6 +452,7 @@ export default class Game
         if (this._settings.showAPStatus) this.sprites.fakeJudgeline.tint = 0xFFECA0;
         this.sprites.fakeJudgeline.visible = true;
 
+        // 隐藏判定线和音符
         for (const judgeline of this.chart.judgelines)
         {
             if (!judgeline.sprite) continue;
@@ -432,6 +470,10 @@ export default class Game
         };
     }
 
+    /**
+     * 销毁游戏
+     * @param {boolean} removeCanvas - 是否移除画布
+     */
     destroy(removeCanvas = false)
     {
         const canvas = this.render.view;
@@ -455,6 +497,11 @@ export default class Game
         this.render.destroy(removeCanvas, { children: true, texture: false, baseTexture: false });
     }
 
+    /**
+     * 添加事件监听器
+     * @param {string} type - 事件类型
+     * @param {Function} callback - 回调函数
+     */
     on(type, callback)
     {
         if (!this.functions[type]) return;
@@ -462,6 +509,11 @@ export default class Game
         this.functions[type].push(callback);
     }
 
+    /**
+     * 添加处理器
+     * @param {string} type - 处理器类型
+     * @param {Function} callback - 回调函数
+     */
     addProcessor(type, callback)
     {
         if (!this.processors[type]) return;
@@ -469,6 +521,11 @@ export default class Game
         this.processors[type].push(callback);
     }
 
+    /**
+     * 调整窗口大小
+     * @param {boolean} withChartSprites - 是否调整谱面精灵
+     * @param {boolean} shouldResetFakeJudgeLine - 是否重置假判定线
+     */
     resize(withChartSprites = true, shouldResetFakeJudgeLine = true)
     {
         if (!this.render) return;
@@ -513,6 +570,7 @@ export default class Game
             this.render.mainContainerCover.visible = false;
         }
 
+        // 调整精灵位置和尺寸
         if (!this._isEnded && this.sprites)
         {
             if (this.sprites.progressBar)
@@ -551,6 +609,7 @@ export default class Game
             this.render.fpsText.style.padding  = this.render.sizer.heightPercent * 8;
         }
 
+        // 水印尺寸计算
         if (this.render.watermark)
         {
             this.render.watermark.position.x     = this.render.sizer.width;
@@ -558,6 +617,7 @@ export default class Game
             this.render.watermark.style.fontSize = this.render.sizer.heightPercent * 24;
         }
         
+        // 调整谱面精灵
         if (withChartSprites)
         {
             this.judgement.resizeSprites(this.render.sizer, this._isEnded);
@@ -565,35 +625,48 @@ export default class Game
         }
     }
 
+    /**
+     * 获取游戏时间（秒）
+     * @returns {number} 游戏时间（秒）
+     */
     gameTimeInSec() {
         return (Date.now() - this._gameStartTime) / 1000;
     }
 }
 
+/**
+ * 计算尺寸调整器
+ * 根据屏幕尺寸计算游戏元素的尺寸和位置参数
+ * @param {number} width - 屏幕宽度
+ * @param {number} height - 屏幕高度
+ * @param {number} noteScale - 音符缩放比例
+ * @param {number} resolution - 分辨率
+ * @returns {Object} 尺寸参数对象
+ */
 function calcResizer(width, height, noteScale = 8000, resolution = window.devicePixelRatio)
 {
     let result = {};
 
-    result.shaderScreenSize = [ width * resolution, height * resolution ];
+    result.shaderScreenSize = [ width * resolution, height * resolution ]; // 着色器屏幕尺寸
 
-    result.width  = height / 9 * 16 < width ? height / 9 * 16 : width;
-    result.height = height;
-    result.widthPercent = result.width * (9 / 160);
-    result.widthOffset  = (width - result.width) / 2;
+    result.width  = height / 9 * 16 < width ? height / 9 * 16 : width;     // 宽度
+    result.height = height;                                                // 高度
+    result.widthPercent = result.width * (9 / 160);                       // 宽度百分比
+    result.widthOffset  = (width - result.width) / 2;                     // 宽度偏移
 
-    result.widerScreen = result.width < width ? true : false;
+    result.widerScreen = result.width < width ? true : false;             // 是否为宽屏
 
-    result.startX = -result.width / 12;
-    result.endX   = result.width * (13 / 12);
-    result.startY = -result.height / 12;
-    result.endY   = result.height * (13 / 12);
+    result.startX = -result.width / 12;                                   // 起始X坐标
+    result.endX   = result.width * (13 / 12);                             // 结束X坐标
+    result.startY = -result.height / 12;                                  // 起始Y坐标
+    result.endY   = result.height * (13 / 12);                            // 结束Y坐标
 
-    result.noteSpeed     = result.height * 0.6;
-    result.noteScale     = result.width / noteScale;
-    result.noteWidth     = result.width * 0.117775;
-    result.lineScale     = result.width > result.height * 0.75 ? result.height / 18.75 : result.width / 14.0625;
-    result.heightPercent = result.height / 1080;
-    result.textureScale  = result.height / 750;
+    result.noteSpeed     = result.height * 0.6;                           // 音符速度
+    result.noteScale     = result.width / noteScale;                      // 音符缩放
+    result.noteWidth     = result.width * 0.117775;                       // 音符宽度
+    result.lineScale     = result.width > result.height * 0.75 ? result.height / 18.75 : result.width / 14.0625; // 判定线缩放
+    result.heightPercent = result.height / 1080;                          // 高度百分比
+    result.textureScale  = result.height / 750;                           // 纹理缩放
 
     return result;
 }

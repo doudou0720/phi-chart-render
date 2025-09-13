@@ -2,62 +2,77 @@ import * as verify from '@/verify';
 import utils from './convert/utils';
 import { Sprite, Container, Text, Graphics } from 'pixi.js';
 
+/**
+ * 判定线类
+ * 表示Phigros谱面中的判定线，包含位置、旋转、缩放等属性以及相关事件
+ */
 export default class Judgeline
 {
+    /**
+     * 构造函数
+     * @param {Object} params - 参数对象
+     */
     constructor(params)
     {
-        this.id               = verify.number(params.id, -1, 0);
-        this.texture          = params.texture ? params.texture : null;
-        this.parentLine       = params.parentLine || params.parentLine === 0 ? params.parentLine : null;
-        this.zIndex           = verify.number(params.zIndex, NaN);
-        this.isCover          = verify.bool(params.isCover, true);
-        this.useOfficialScale = false;
+        this.id               = verify.number(params.id, -1, 0);                 // 判定线ID
+        this.texture          = params.texture ? params.texture : null;          // 纹理名称
+        this.parentLine       = params.parentLine || params.parentLine === 0 ? params.parentLine : null; // 父级判定线
+        this.zIndex           = verify.number(params.zIndex, NaN);               // Z轴索引
+        this.isCover          = verify.bool(params.isCover, true);               // 是否覆盖
+        this.useOfficialScale = false;                                           // 是否使用官方缩放
 
-        this.eventLayers = [];
-        this.floorPositions = [];
-        this.extendEvent = {
-            color: [],
-            scaleX: [],
-            scaleY: [],
-            text: [],
-            incline: []
+        this.eventLayers = [];          // 事件层列表
+        this.floorPositions = [];       // 地板位置列表
+        this.extendEvent = {            // 扩展事件
+            color: [],                  // 颜色事件
+            scaleX: [],                 // X轴缩放事件
+            scaleY: [],                 // Y轴缩放事件
+            text: [],                   // 文本事件
+            incline: []                 // 倾斜事件
         };
-        this.noteControls = {
-            alpha: [],
-            scale: [],
-            x: [],
-            /* y: [] */
+        this.noteControls = {           // 音符控制参数
+            alpha: [],                  // 透明度控制
+            scale: [],                  // 缩放控制
+            x: [],                      // X轴位置控制
+            /* y: [] */                 // Y轴位置控制（注释掉）
         };
-        this.isText = false;
+        this.isText = false;            // 是否为文本判定线
         
-        this.sprite = undefined;
+        this.sprite = undefined;        // Pixi精灵对象
 
         this.reset();
     }
 
+    /**
+     * 重置判定线状态
+     */
     reset()
     {
-        this.speed = 1;
-        this.x     = 0.5;
-        this.y     = 0.5;
-        this.alpha = 1;
-        this.deg   = 0;
-        this.sinr  = 0;
-        this.cosr  = 1;
+        this.speed = 1;         // 速度
+        this.x     = 0.5;       // X坐标
+        this.y     = 0.5;       // Y坐标
+        this.alpha = 1;         // 透明度
+        this.deg   = 0;         // 角度（度数）
+        this.sinr  = 0;         // 角度的正弦值
+        this.cosr  = 1;         // 角度的余弦值
 
-        this.floorPosition = 0;
+        this.floorPosition = 0; // 地板位置
 
-        this.baseScaleX = 3;
-        this.baseScaleY = 2.88;
+        this.baseScaleX = 3;    // 基础X轴缩放
+        this.baseScaleY = 2.88; // 基础Y轴缩放
         
+        // 设置X轴缩放值
         if (this.extendEvent.scaleX.length > 0 && this.extendEvent.scaleX[0].startTime <= 0) this.scaleX = this.extendEvent.scaleX[0].start;
         else this.scaleX = 1;
+        
+        // 设置Y轴缩放值
         if (this.extendEvent.scaleY.length > 0 && this.extendEvent.scaleY[0].startTime <= 0) this.scaleY = this.extendEvent.scaleY[0].start;
         else this.scaleY = 1;
 
-        this.inclineSinr = NaN;
-        this.color = NaN;
+        this.inclineSinr = NaN; // 倾斜正弦值
+        this.color = NaN;       // 颜色值
 
+        // 重置精灵属性
         if (this.sprite)
         {
             this.sprite.alpha = 1;
@@ -71,18 +86,25 @@ export default class Judgeline
         }
     }
 
+    /**
+     * 对事件进行排序
+     * @param {boolean} withEndTime - 是否包含结束时间
+     */
     sortEvent(withEndTime = false)
     {
+        // 对每个事件层进行排序
         this.eventLayers.forEach((eventLayer) =>
         {
             eventLayer.sort();
         });
 
+        // 对扩展事件按开始时间排序
         for (const name in this.extendEvent)
         {
             this.extendEvent[name].sort((a, b) => a.startTime - b.startTime);
         }
 
+        // 处理事件层中的事件
         for (const name in this.eventLayers[0])
         {
             if (name == 'speed' || !(this.eventLayers[0][name] instanceof Array)) continue;
@@ -96,16 +118,21 @@ export default class Judgeline
             });
         }
 
+        // 对音符控制参数按Y轴排序
         for (const name in this.noteControls)
         {
             this.noteControls[name].sort((a, b) => b.y - a.y);
         }
     }
 
+    /**
+     * 计算地板位置
+     */
     calcFloorPosition()
     {
         if (this.eventLayers.length <= 0) throw new Error('No event layer in this judgeline');
 
+        // 计算没有速度事件的层数
         let noSpeedEventsLayerCount = 0;
         this.eventLayers.forEach((eventLayer) =>
         {
@@ -113,6 +140,7 @@ export default class Judgeline
             if (eventLayer.speed.length < 1) noSpeedEventsLayerCount++;
         });
 
+        // 如果所有层都没有速度事件，则添加默认速度事件
         if (noSpeedEventsLayerCount == this.eventLayers.length)
         {
             console.warn('Line ' + this.id + ' don\'t have any speed event, use default speed.');
@@ -124,12 +152,14 @@ export default class Judgeline
             });
         }
 
+        // 记录相同时间的速度事件
         let sameTimeSpeedEventAlreadyExist = {};
         let currentFloorPosition = 0;
         let floorPositions = [];
 
         this.floorPositions = [];
 
+        // 处理每个事件层中的速度事件
         this.eventLayers.forEach((eventLayer, eventLayerIndex) =>
         {
             eventLayer.speed.forEach((event, eventIndex) =>
@@ -150,6 +180,7 @@ export default class Judgeline
                 sameTimeSpeedEventAlreadyExist[eventTime] = true;
             });
 
+            // 如果第一个事件的开始时间大于0，则添加默认事件
             if (eventLayerIndex === 0 && eventLayer.speed[0].startTime > 0)
             {
                 eventLayer.speed.unshift({
@@ -160,8 +191,10 @@ export default class Judgeline
             }
         });
 
+        // 对地板位置按开始时间排序
         floorPositions.sort((a, b) => a.startTime - b.startTime);
 
+        // 添加初始地板位置
         floorPositions.unshift({
             startTime     : 1 - 1000,
             endTime       : floorPositions[0] ? floorPositions[0].startTime : 1e4,
@@ -169,6 +202,7 @@ export default class Judgeline
         });
         currentFloorPosition += floorPositions[0].endTime;
         
+        // 计算每个地板位置
         for (let floorPositionIndex = 1; floorPositionIndex < floorPositions.length; floorPositionIndex++)
         {
             let currentEvent = floorPositions[floorPositionIndex];
@@ -184,12 +218,18 @@ export default class Judgeline
         this.floorPositions = floorPositions;
     }
 
+    /**
+     * 获取指定时间的地板位置
+     * @param {number} time - 时间
+     * @returns {Object} 地板位置信息
+     */
     getFloorPosition(time)
     {
         if (this.floorPositions.length <= 0) throw new Error('No floorPosition created, please call calcFloorPosition() first');
 
         let result = {};
 
+        // 查找对应时间的地板位置
         for (const floorPosition of this.floorPositions)
         {
             if (floorPosition.endTime < time) continue;
@@ -205,10 +245,16 @@ export default class Judgeline
         return result;
     }
 
+    /**
+     * 计算速度值
+     * @param {number} time - 时间
+     * @returns {number} 速度值
+     */
     _calcSpeedValue(time)
     {
         let result = 0;
 
+        // 计算每个事件层的速度值
         this.eventLayers.forEach((eventLayer) =>
         {
             let currentValue = 0;
@@ -226,10 +272,18 @@ export default class Judgeline
         return result;
     }
 
+    /**
+     * 创建精灵对象
+     * @param {Object} texture - 纹理对象
+     * @param {Object} zipFiles - ZIP文件对象
+     * @param {boolean} debug - 是否为调试模式
+     * @returns {Sprite} 创建的精灵对象
+     */
     createSprite(texture, zipFiles, debug = false)
     {
         if (this.sprite) return this.sprite;
 
+        // 创建文本或图像精灵
         if (!this.isText)
         {
             this.sprite = new Sprite(zipFiles[this.texture] ? zipFiles[this.texture] : texture.judgeline);
@@ -251,7 +305,7 @@ export default class Judgeline
         this.sprite.anchor.set(0.5);
         this.sprite.alpha = 1;
 
-        // For debug propose
+        // 调试模式下创建调试信息容器
         if (debug)
         {
             let lineInfoContainer = new Container();
@@ -278,6 +332,7 @@ export default class Judgeline
             this.debugSprite = lineInfoContainer;
         }
 
+        // 设置初始缩放值
         if (this.extendEvent.scaleX.length > 0 && this.extendEvent.scaleX[0].startTime <= 0)
         {
             this.scaleX = this.extendEvent.scaleX[0].start;
@@ -290,6 +345,11 @@ export default class Judgeline
         return this.sprite;
     }
 
+    /**
+     * 计算指定时间的状态
+     * @param {number} currentTime - 当前时间
+     * @param {Object} size - 画布尺寸
+     */
     calcTime(currentTime, size)
     {
         this.speed = 0;
@@ -298,6 +358,7 @@ export default class Judgeline
         this.alpha = 0;
         this.deg   = 0;
 
+        // 计算每个事件层的状态
         for (let i = 0, length = this.eventLayers.length; i < length; i++)
         {
             let eventLayer = this.eventLayers[i];
@@ -310,6 +371,7 @@ export default class Judgeline
             this.deg    += eventLayer._rotate;
         }
 
+        // 计算地板位置
         for (let i = 0, length = this.floorPositions.length; i < length; i++)
         {
             let event = this.floorPositions[i];
@@ -319,6 +381,7 @@ export default class Judgeline
             this.floorPosition = (currentTime - event.startTime) * this.speed + event.floorPosition;
         };
 
+        // 计算X轴缩放
         for (let i = 0, length = this.extendEvent.scaleX.length; i < length; i++)
         {
             let event = this.extendEvent.scaleX[i];
@@ -332,6 +395,7 @@ export default class Judgeline
             this.sprite.scale.x = this.scaleX * this.baseScaleX;
         }
 
+        // 计算Y轴缩放
         for (let i = 0, length = this.extendEvent.scaleY.length; i < length; i++)
         {
             let event = this.extendEvent.scaleY[i];
@@ -345,6 +409,7 @@ export default class Judgeline
             this.sprite.scale.y = this.scaleY * this.baseScaleY;
         }
 
+        // 设置文本内容
         for (let i = 0, length = this.extendEvent.text.length; i < length; i++)
         {
             let event = this.extendEvent.text[i];
@@ -354,6 +419,7 @@ export default class Judgeline
             this.sprite.text = event.value;
         }
 
+        // 设置颜色
         for (let i = 0, length = this.extendEvent.color.length; i < length; i++)
         {
             let event = this.extendEvent.color[i];
@@ -363,6 +429,7 @@ export default class Judgeline
             this.color = this.sprite.tint = event.value;
         }
 
+        // 计算倾斜
         for (let i = 0, length = this.extendEvent.incline.length; i < length; i++)
         {
             let event = this.extendEvent.incline[i];
@@ -375,9 +442,11 @@ export default class Judgeline
             this.inclineSinr = Math.sin(event.start * timePercentStart + event.end * timePercentEnd);
         }
 
+        // 计算角度的正弦和余弦值
         this.cosr = Math.cos(this.deg);
         this.sinr = Math.sin(this.deg);
 
+        // 处理父子判定线关系
         if (this.parentLine)
         {
             let newPosX = (this.x * this.parentLine.cosr + this.y * this.parentLine.sinr) * 0.918554 + this.parentLine.x,
@@ -387,6 +456,7 @@ export default class Judgeline
             this.y = newPosY;
         }
 
+        // 更新精灵位置和属性
         this.sprite.position.x = (this.x + 0.5) * size.width;
         this.sprite.position.y = (0.5 - this.y) * size.height;
         this.sprite.alpha      = this.alpha >= 0 ? this.alpha : 0;
@@ -403,6 +473,7 @@ export default class Judgeline
         this.sprite.height = this._height * this.scaleY;
         */
         
+        // 更新调试精灵
         if (this.debugSprite)
         {
             this.debugSprite.position = this.sprite.position;
@@ -411,6 +482,13 @@ export default class Judgeline
         }
     }
 
+    /**
+     * 计算音符控制参数
+     * @param {number} y - Y坐标
+     * @param {string} valueType - 参数类型
+     * @param {*} defaultValue - 默认值
+     * @returns {*} 计算后的参数值
+     */
     calcNoteControl(y, valueType, defaultValue)
     {
         for (let i = 0, length = this.noteControls[valueType].length; i < length; i++)
@@ -420,4 +498,3 @@ export default class Judgeline
         return defaultValue;
     }
 }
-

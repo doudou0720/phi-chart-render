@@ -5,18 +5,21 @@ import InputPoint from './input/point';
 import JudgePoint from './point';
 import { ParticleContainer, AnimatedSprite, Texture, Sprite  } from 'pixi.js';
 
+// 每次点击动画的粒子数量
 const particleCountPerClickAnim = 4;
 
+// 所有判定时间阈值（毫秒）
 const AllJudgeTimes = {
-    bad     : 180,
-    good    : 160,
-    perfect : 80,
+    bad     : 180,    // Bad判定时间
+    good    : 160,    // Good判定时间
+    perfect : 80,     // Perfect判定时间
 
-    badChallenge     : 90,
-    goodChallenge    : 75,
-    perfectChallenge : 40
+    badChallenge     : 90,   // 挑战模式Bad判定时间
+    goodChallenge    : 75,   // 挑战模式Good判定时间
+    perfectChallenge : 40    // 挑战模式Perfect判定时间
 };
 
+// 点击动画点缓存
 var ClickAnimatePointCache;
 (async () =>
 {
@@ -39,30 +42,40 @@ var ClickAnimatePointCache;
     ClickAnimatePointCache = result;
 })();
 
+/**
+ * 判定类
+ * 处理游戏中的各种判定逻辑，包括音符判定、点击动画、音效播放等
+ */
 export default class Judgement
 {
+    /**
+     * 构造函数
+     * @param {Object} params - 参数对象
+     */
     constructor(params = {})
     {
-        this.chart    = params.chart;
-        this.stage    = params.stage;
-        this.textures = params.assets.textures;
-        this.sounds   = params.assets.sounds;
+        this.chart    = params.chart;     // 谱面对象
+        this.stage    = params.stage;     // 舞台对象
+        this.textures = params.assets.textures; // 纹理资源
+        this.sounds   = params.assets.sounds;   // 音效资源
         
         if (!params.stage) throw new Error('You cannot do judgement without a stage');
         if (!params.chart) throw new Error('You cannot do judgement without a chart');
 
-        this._autoPlay       = verify.bool(params.autoPlay, false);
-        this._hitsound       = verify.bool(params.hitsound, true);
-        this._hitsoundVolume = verify.number(params.hitsoundVolume, 1, 0, 1);
+        this._autoPlay       = verify.bool(params.autoPlay, false);        // 自动播放模式
+        this._hitsound       = verify.bool(params.hitsound, true);         // 是否播放音效
+        this._hitsoundVolume = verify.number(params.hitsoundVolume, 1, 0, 1); // 音效音量
 
+        // 创建分数计算对象
         this.score = new Score(this.chart.totalRealNotes, verify.bool(params.showAPStatus, true), verify.bool(params.challangeMode, false), this._autoPlay);
+        // 创建输入处理对象
         this.input = new Input({ canvas: params.canvas, autoPlay: this._autoPlay });
 
         /* ===== 判定用时间计算 ===== */
         this.judgeTimes = {
-            perfect : (!params.challangeMode ? AllJudgeTimes.perfect : AllJudgeTimes.perfectChallenge) / 1000,
-            good    : (!params.challangeMode ? AllJudgeTimes.good : AllJudgeTimes.goodChallenge) / 1000,
-            bad     : (!params.challangeMode ? AllJudgeTimes.bad : AllJudgeTimes.badChallenge) / 1000
+            perfect : (!params.challangeMode ? AllJudgeTimes.perfect : AllJudgeTimes.perfectChallenge) / 1000, // Perfect判定时间（秒）
+            good    : (!params.challangeMode ? AllJudgeTimes.good : AllJudgeTimes.goodChallenge) / 1000,       // Good判定时间（秒）
+            bad     : (!params.challangeMode ? AllJudgeTimes.bad : AllJudgeTimes.badChallenge) / 1000         // Bad判定时间（秒）
         };
 
         this.calcTick = this.calcTick.bind(this);
@@ -71,19 +84,27 @@ export default class Judgement
         this.reset();
     }
 
+    /**
+     * 重置判定状态
+     */
     reset()
     {
-        this.judgePoints = [];
-        this.score.reset();
-        this.input.reset();
+        this.judgePoints = [];        // 判定点数组
+        this.score.reset();           // 重置分数
+        this.input.reset();           // 重置输入
 
-        this._holdBetween = 0.15;
+        this._holdBetween = 0.15;     // Hold音符判定间隔
 
-        if (this.clickParticleContainer) this.clickParticleContainer.removeChildren();
+        if (this.clickParticleContainer) this.clickParticleContainer.removeChildren(); // 清空粒子容器
     }
 
+    /**
+     * 创建精灵对象
+     * @param {boolean} showInputPoint - 是否显示输入点
+     */
     createSprites(showInputPoint = true)
     {
+        // 创建点击粒子容器
         this.clickParticleContainer = new ParticleContainer(1500, {
             vertices: true,
             position: true,
@@ -93,9 +114,11 @@ export default class Judgement
         this.clickParticleContainer.zIndex = 99999;
         this.stage.addChild(this.clickParticleContainer);
 
+        // 创建分数和输入精灵
         this.score.createSprites(this.stage);
         this.input.createSprite(this.stage, showInputPoint);
 
+        // 计算点击动画基础缩放
         this._clickAnimBaseScale = {
             normal : 256 / this.textures.normal[0].baseTexture.width,
             bad    : 256 / this.textures.bad[0].baseTexture.width
@@ -103,6 +126,11 @@ export default class Judgement
         // this.stage.addChild(this.input.sprite);
     }
 
+    /**
+     * 调整精灵尺寸
+     * @param {Object} size - 尺寸对象
+     * @param {boolean} isEnded - 是否结束
+     */
     resizeSprites(size, isEnded)
     {
         this.renderSize = size;
@@ -110,12 +138,16 @@ export default class Judgement
         this.input.resizeSprites(size, isEnded);
     }
 
+    /**
+     * 计算每帧逻辑
+     */
     calcTick()
     {
-        this.createJudgePoints();
+        this.createJudgePoints(); // 创建判定点
 
-        this.input.calcTick();
+        this.input.calcTick();    // 计算输入
 
+        // 更新点击粒子动画
         for (let i = 0, length = this.clickParticleContainer.children.length; i < length; i++)
         {
             const particle = this.clickParticleContainer.children[i];
@@ -139,6 +171,9 @@ export default class Judgement
         }
     }
 
+    /**
+     * 创建判定点
+     */
     createJudgePoints()
     {
         this.judgePoints.length = 0;
@@ -149,13 +184,18 @@ export default class Judgement
             {
                 let inputPoint = this.input.inputs[i];
 
-                if (!inputPoint.isTapped) this.judgePoints.push(new JudgePoint(inputPoint, 1));
-                if (inputPoint.isActive) this.judgePoints.push(new JudgePoint(inputPoint, 3));
-                if (inputPoint.isFlickable && !inputPoint.isFlicked) this.judgePoints.push(new JudgePoint(inputPoint, 2));
+                // 根据输入点状态创建不同类型的判定点
+                if (!inputPoint.isTapped) this.judgePoints.push(new JudgePoint(inputPoint, 1)); // 点击
+                if (inputPoint.isActive) this.judgePoints.push(new JudgePoint(inputPoint, 3));   // 按住
+                if (inputPoint.isFlickable && !inputPoint.isFlicked) this.judgePoints.push(new JudgePoint(inputPoint, 2)); // 滑动
             }
         }
     }
 
+    /**
+     * 推送音符判定结果
+     * @param {Object} note - 音符对象
+     */
     pushNoteJudge(note)
     {
         this.score.pushJudge(note.score, this.chart.judgelines);
@@ -166,19 +206,28 @@ export default class Judgement
         }
     }
 
+    /**
+     * 创建点击动画
+     * @param {Object} note - 音符对象
+     * @returns {AnimatedSprite} 动画精灵
+     */
     createClickAnimate(note)
     {
+        // 创建动画精灵
         let anim = new AnimatedSprite(note.score >= 3 ? this.textures.normal : this.textures.bad),
             baseScale = this.renderSize.noteScale * 5.6;
 
+        // 设置动画位置
         if (note.score >= 3 && note.type != 3) anim.position.set(note.sprite.judgelineX, note.sprite.judgelineY);
         else anim.position.copyFrom(note.sprite.position);
 
+        // 设置动画缩放和颜色
         anim.scale.set((note.score >= 3 ? this._clickAnimBaseScale.normal : this._clickAnimBaseScale.bad) * baseScale);
         anim.tint = note.score === 4 ? 0xFFECA0 : note.score === 3 ? 0xB4E1FF : 0x6c4343;
 
         anim.loop = false;
 
+        // 创建粒子效果
         if (note.score >= 3)
         {
             let currentParticleCount = 0;
@@ -207,6 +256,7 @@ export default class Judgement
             anim.angle = note.sprite.angle;
         }
 
+        // 设置动画回调
         anim.onFrameChange = function () {
             this.alpha = 1 - (this.currentFrame / this.totalFrames);
         };
@@ -220,26 +270,31 @@ export default class Judgement
         return anim;
     }
 
+    /**
+     * 播放音效
+     * @param {Object} note - 音符对象
+     */
     playHitsound(note)
     {
         if (!this._hitsound) return;
         if (note.hitsound) note.hitsound.play();
         else
         {
+            // 根据音符类型播放不同音效
             switch (note.type)
             {
-                case 1:
-                case 3:
+                case 1: // Tap音符
+                case 3: // Hold音符
                 {
                     this.sounds.tap.play();
                     break;
                 }
-                case 2:
+                case 2: // Drag音符
                 {
                     this.sounds.drag.play();
                     break;
                 }
-                case 4:
+                case 4: // Flick音符
                 {
                     this.sounds.flick.play();
                     break;
@@ -248,6 +303,9 @@ export default class Judgement
         }
     }
 
+    /**
+     * 销毁精灵对象
+     */
     destroySprites()
     {
         this.reset();
@@ -259,12 +317,18 @@ export default class Judgement
     }
 }
 
+/**
+ * 计算音符判定
+ * @param {number} currentTime - 当前时间
+ * @param {Object} note - 音符对象
+ */
 function calcNoteJudge(currentTime, note)
 {
     if (note.isFake) return; // 忽略假 Note
     if (note.isScored && note.isScoreAnimated) return; // 已记分忽略
     if (note.time - this.judgeTimes.bad > currentTime) return; // 不在记分范围内忽略
     
+    // 处理未记分且超时的音符
     if (!note.isScored)
     {
         if (note.type !== 3 && note.time + this.judgeTimes.bad < currentTime)
@@ -295,12 +359,13 @@ function calcNoteJudge(currentTime, note)
         }
     }
     
-
+    // 计算时间差和相关参数
     let timeBetween = note.time - currentTime,
         timeBetweenReal = timeBetween > 0 ? timeBetween : timeBetween * -1,
         judgeline = note.judgeline,
         notePosition = note.sprite.position;
     
+    // 更新音符透明度
     if (note.type !== 3 && !note.isScoreAnimated && note.time <= currentTime)
     {
         note.sprite.alpha = 1 + (timeBetween / this.judgeTimes.bad);
@@ -323,9 +388,10 @@ function calcNoteJudge(currentTime, note)
         }
     }
 
+    // 根据音符类型进行不同判定
     switch (note.type)
     {
-        case 1:
+        case 1: // Tap音符
         {
             for (let i = 0, length = this.judgePoints.length; i < length; i++)
             {
@@ -357,7 +423,7 @@ function calcNoteJudge(currentTime, note)
 
             break;
         }
-        case 2:
+        case 2: // Drag音符
         {
             if (note.isScored && !note.isScoreAnimated && timeBetween <= 0)
             {
@@ -383,7 +449,7 @@ function calcNoteJudge(currentTime, note)
             
             break;
         }
-        case 3:
+        case 3: // Hold音符
         {
             if (note.isScored)
             {
@@ -448,7 +514,7 @@ function calcNoteJudge(currentTime, note)
 
             break;
         }
-        case 4:
+        case 4: // Flick音符
         {
             if (note.isScored && !note.isScoreAnimated && timeBetween <= 0)
             {

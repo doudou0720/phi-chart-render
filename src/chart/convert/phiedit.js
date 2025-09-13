@@ -4,50 +4,66 @@ import EventLayer from '../eventlayer';
 import Note from '../note';
 import utils from './utils';
 
+/**
+ * 缓动函数数组
+ * 包含各种常用的缓动函数，用于动画插值计算
+ */
 const Easing = [
-    pos => pos, //1
-	pos => Math.sin(pos * Math.PI / 2), //2
-	pos => 1 - Math.cos(pos * Math.PI / 2), //3
-	pos => 1 - (pos - 1) ** 2, //4
-	pos => pos ** 2, //5
-	pos => (1 - Math.cos(pos * Math.PI)) / 2, //6
-	pos => ((pos *= 2) < 1 ? pos ** 2 : -((pos - 2) ** 2 - 2)) / 2, //7
-	pos => 1 + (pos - 1) ** 3, //8
-	pos => pos ** 3, //9
-	pos => 1 - (pos - 1) ** 4, //10
-	pos => pos ** 4, //11
-	pos => ((pos *= 2) < 1 ? pos ** 3 : ((pos - 2) ** 3 + 2)) / 2, //12
-	pos => ((pos *= 2) < 1 ? pos ** 4 : -((pos - 2) ** 4 - 2)) / 2, //13
-	pos => 1 + (pos - 1) ** 5, //14
-	pos => pos ** 5, //15
-	pos => 1 - 2 ** (-10 * pos), //16
-	pos => 2 ** (10 * (pos - 1)), //17
-	pos => Math.sqrt(1 - (pos - 1) ** 2), //18
-	pos => 1 - Math.sqrt(1 - pos ** 2), //19
-	pos => (2.70158 * pos - 1) * (pos - 1) ** 2 + 1, //20
-	pos => (2.70158 * pos - 1.70158) * pos ** 2, //21
-	pos => ((pos *= 2) < 1 ? (1 - Math.sqrt(1 - pos ** 2)) : (Math.sqrt(1 - (pos - 2) ** 2) + 1)) / 2, //22
-	pos => pos < 0.5 ? (14.379638 * pos - 5.189819) * pos ** 2 : (14.379638 * pos - 9.189819) * (pos - 1) ** 2 + 1, //23
-	pos => 1 - 2 ** (-10 * pos) * Math.cos(pos * Math.PI / .15), //24
-	pos => 2 ** (10 * (pos - 1)) * Math.cos((pos - 1) * Math.PI / .15), //25
-	pos => ((pos *= 11) < 4 ? pos ** 2 : pos < 8 ? (pos - 6) ** 2 + 12 : pos < 10 ? (pos - 9) ** 2 + 15 : (pos - 10.5) ** 2 + 15.75) / 16, //26
-	pos => 1 - Easing[25](1 - pos), //27
-	pos => (pos *= 2) < 1 ? Easing[25](pos) / 2 : Easing[26](pos - 1) / 2 + .5, //28
-	pos => pos < 0.5 ? 2 ** (20 * pos - 11) * Math.sin((160 * pos + 1) * Math.PI / 18) : 1 - 2 ** (9 - 20 * pos) * Math.sin((160 * pos + 1) * Math.PI / 18) //29
+    pos => pos, // 线性
+	pos => Math.sin(pos * Math.PI / 2), // 正弦缓入
+	pos => 1 - Math.cos(pos * Math.PI / 2), // 余弦缓出
+	pos => 1 - (pos - 1) ** 2, // 平方缓出
+	pos => pos ** 2, // 平方缓入
+	pos => (1 - Math.cos(pos * Math.PI)) / 2, // 正弦缓入缓出
+	pos => ((pos *= 2) < 1 ? pos ** 2 : -((pos - 2) ** 2 - 2)) / 2, // 平方缓入缓出
+	pos => 1 + (pos - 1) ** 3, // 立方缓出
+	pos => pos ** 3, // 立方缓入
+	pos => 1 - (pos - 1) ** 4, // 四次缓出
+	pos => pos ** 4, // 四次缓入
+	pos => ((pos *= 2) < 1 ? pos ** 3 : ((pos - 2) ** 3 + 2)) / 2, // 立方缓入缓出
+	pos => ((pos *= 2) < 1 ? pos ** 4 : -((pos - 2) ** 4 - 2)) / 2, // 四次缓入缓出
+	pos => 1 + (pos - 1) ** 5, // 五次缓出
+	pos => pos ** 5, // 五次缓入
+	pos => 1 - 2 ** (-10 * pos), // 指数缓出
+	pos => 2 ** (10 * (pos - 1)), // 指数缓入
+	pos => Math.sqrt(1 - (pos - 1) ** 2), // 圆形缓出
+	pos => 1 - Math.sqrt(1 - pos ** 2), // 圆形缓入
+	pos => (2.70158 * pos - 1) * (pos - 1) ** 2 + 1, // 弹跳缓出
+	pos => (2.70158 * pos - 1.70158) * pos ** 2, // 弹跳缓入
+	pos => ((pos *= 2) < 1 ? (1 - Math.sqrt(1 - pos ** 2)) : (Math.sqrt(1 - (pos - 2) ** 2) + 1)) / 2, // 圆形缓入缓出
+	pos => pos < 0.5 ? (14.379638 * pos - 5.189819) * pos ** 2 : (14.379638 * pos - 9.189819) * (pos - 1) ** 2 + 1, // 自定义缓动
+	pos => 1 - 2 ** (-10 * pos) * Math.cos(pos * Math.PI / .15), // 正弦指数缓出
+	pos => 2 ** (10 * (pos - 1)) * Math.cos((pos - 1) * Math.PI / .15), // 正弦指数缓入
+	pos => ((pos *= 11) < 4 ? pos ** 2 : pos < 8 ? (pos - 6) ** 2 + 12 : pos < 10 ? (pos - 9) ** 2 + 15 : (pos - 10.5) ** 2 + 15.75) / 16, // 多段缓动
+	pos => 1 - Easing[25](1 - pos), // 弹跳缓入
+	pos => (pos *= 2) < 1 ? Easing[25](pos) / 2 : Easing[26](pos - 1) / 2 + .5, // 弹跳缓入缓出
+	pos => pos < 0.5 ? 2 ** (20 * pos - 11) * Math.sin((160 * pos + 1) * Math.PI / 18) : 1 - 2 ** (9 - 20 * pos) * Math.sin((160 * pos + 1) * Math.PI / 18) // 正弦指数混合缓动
 ];
 
+/**
+ * PhiEdit格式谱面转换器
+ * 将PhiEdit格式的谱面数据转换为内部使用的谱面对象
+ * @param {string} _chart - 原始谱面数据字符串
+ * @returns {Chart} 转换后的谱面对象
+ */
 export default function PhiEditChartConverter(_chart)
 {
+    // 按行分割谱面数据
     let rawChart = _chart.split(/\r\n|\n\r/);
     let chart = new Chart();
+    // 简化的谱面对象，用于中间处理
     let chartSimple = {
-        bpm: [],
-        judgelines: [],
-        _judgelines: {},
-        notes: [],
-        notesPerLine: {},
-        sameTimeNoteCount: {},
+        bpm: [],              // BPM列表
+        judgelines: [],       // 判定线列表
+        _judgelines: {},      // 判定线对象映射
+        notes: [],            // 音符列表
+        notesPerLine: {},     // 每条判定线的音符
+        sameTimeNoteCount: {},// 同时音符计数
 
+        /**
+         * 添加音符到谱面
+         * @param {Object} note - 音符对象
+         */
         pushNote: function (note)
         {
             this.sameTimeNoteCount[floorNum(note.startTime)] = !this.sameTimeNoteCount[floorNum(note.startTime)] ? 1 : this.sameTimeNoteCount[floorNum(note.startTime)] + 1;
@@ -56,8 +72,15 @@ export default function PhiEditChartConverter(_chart)
             this.notes.push(note);
         },
 
+        /**
+         * 添加事件到判定线
+         * @param {number} lineId - 判定线ID
+         * @param {string} eventName - 事件名称
+         * @param {Object} event - 事件对象
+         */
         pushEventToLine: function (lineId, eventName, event)
         {
+            // 检查判定线ID是否有效
             if (isNaN(lineId) || lineId < 0)
             {
                 console.warn('Invalid line id: ' + lineId + ', ignored');
@@ -70,6 +93,7 @@ export default function PhiEditChartConverter(_chart)
             let events = this._judgelines[lineId].eventLayers[0][eventName];
             let lastEvent = events[events.length - 1];
 
+            // 合并相同时间的事件
             if (
                 lastEvent &&
                 lastEvent.startTime == event.startTime &&
@@ -109,9 +133,11 @@ export default function PhiEditChartConverter(_chart)
     chartSimple.pushEventToLine = chartSimple.pushEventToLine.bind(chartSimple);
     */
     
+    // 设置谱面偏移
     if (!isNaN(rawChart[0])) chart.offset = parseFloat((parseFloat(rawChart.shift()) / 1000).toFixed(4)) - 0.175;
     else return null;
 
+    // 解析每行命令
     rawChart.forEach((_command, commandIndex) =>
     {
         if (!_command) return;
@@ -120,11 +146,13 @@ export default function PhiEditChartConverter(_chart)
 
         let command = _command.split(' ');
 
+        // 将命令参数转换为数字
         for (let commandIndex = 1; commandIndex < command.length; commandIndex++)
         {
             command[commandIndex] = parseFloat(command[commandIndex]);
         }
 
+        // 根据命令类型处理
         switch (command[0])
         {
             // bpm 列表
@@ -293,6 +321,7 @@ export default function PhiEditChartConverter(_chart)
         }
     });
 
+    // 如果没有BPM信息，则添加默认BPM
     if (chartSimple.bpm.length <= 0)
     {
         chartSimple.bpm.push({
@@ -311,7 +340,6 @@ export default function PhiEditChartConverter(_chart)
 
         chartSimple.bpm.forEach((bpm, index) =>
         {   
-
             bpm.endBeat = chartSimple.bpm[index + 1] ? chartSimple.bpm[index + 1].startBeat : 1e4;
 
             bpmChangedTime += currentBeatRealTime * (bpm.startBeat - bpmChangedBeat);
@@ -332,6 +360,7 @@ export default function PhiEditChartConverter(_chart)
         chartSimple.notesPerLine[lineId].sort((a, b) => a.startTime - b.startTime);
     }
 
+    // 处理每条判定线的事件
     for (const lineId in chartSimple._judgelines)
     {
         let judgeline = chartSimple._judgelines[lineId];
@@ -446,6 +475,7 @@ export default function PhiEditChartConverter(_chart)
         judgeline.calcFloorPosition();
     };
 
+    // 处理每条判定线上的音符
     for (const lineId in chartSimple.notesPerLine)
     {
         let notes = chartSimple.notesPerLine[lineId];
@@ -505,6 +535,7 @@ export default function PhiEditChartConverter(_chart)
         });
     }
 
+    // 将处理好的判定线添加到谱面对象中
     for (const lineId in chartSimple._judgelines)
     {
         chart.judgelines.push(chartSimple._judgelines[lineId]);
@@ -518,13 +549,23 @@ export default function PhiEditChartConverter(_chart)
     return chart;
 }
 
-
+/**
+ * 向下取整函数
+ * @param {number} num - 输入数字
+ * @returns {number} 向下取整后的结果
+ */
 function floorNum(num)
 {
     return Math.floor(num * 8);
     // return Math.floor(num * (10 ** n)) / (10 ** n);
 }
 
+/**
+ * 计算实际可见时间
+ * @param {Array} _bpmList - BPM列表
+ * @param {Array} _notes - 音符列表
+ * @returns {Array} 处理后的音符列表
+ */
 function calculateRealVisibleTime(_bpmList, _notes)
 {
     let bpmList = _bpmList.slice();

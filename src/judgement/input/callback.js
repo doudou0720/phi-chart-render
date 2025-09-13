@@ -1,3 +1,7 @@
+/**
+ * 触摸开始事件处理函数
+ * @param {TouchEvent} e - 触摸事件对象
+ */
 function touchStart(e)
 {
     e.preventDefault();
@@ -8,6 +12,10 @@ function touchStart(e)
     }
 }
 
+/**
+ * 触摸移动事件处理函数
+ * @param {TouchEvent} e - 触摸事件对象
+ */
 function touchMove(e)
 {
     e.preventDefault();
@@ -18,6 +26,10 @@ function touchMove(e)
     }
 }
 
+/**
+ * 触摸结束事件处理函数
+ * @param {TouchEvent} e - 触摸事件对象
+ */
 function touchEnd(e)
 {
     e.preventDefault();
@@ -27,6 +39,10 @@ function touchEnd(e)
     }
 }
 
+/**
+ * 鼠标按下事件处理函数
+ * @param {MouseEvent} e - 鼠标事件对象
+ */
 function mouseStart(e)
 {
     e.preventDefault();
@@ -34,17 +50,26 @@ function mouseStart(e)
     this.addInput('mouse', button, clientX - this.renderSize.widthOffset, clientY);
 }
 
+/**
+ * 鼠标移动事件处理函数
+ * @param {MouseEvent} e - 鼠标事件对象
+ */
 function mouseMove(e)
 {
     const { clientX, clientY, button } = e;
     this.moveInput('mouse', button, clientX - this.renderSize.widthOffset, clientY);
 }
 
+/**
+ * 鼠标抬起事件处理函数
+ * @param {MouseEvent} e - 鼠标事件对象
+ */
 function mouseEnd(e)
 {
     this.removeInput('mouse', e.button);
 }
 
+// 导出事件处理函数
 export default {
     touchStart,
     touchMove,
