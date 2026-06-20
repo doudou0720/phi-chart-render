@@ -6,12 +6,13 @@
   "files": [
     "src"
   ],
-  "main": "src/main.js",
+  "main": "src/main.ts",
   "scripts": {
     "dev": "npx vite",
     "dev:prod": "npx vite --mode production",
     "build": "npx vite build",
-    "build:dev": "npx vite build --mode development"
+    "build:dev": "npx vite build --mode development",
+    "type-check": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -25,11 +26,13 @@
   "devDependencies": {
     "@sentry/browser": "^7.38.0",
     "@sentry/tracing": "^7.38.0",
+    "@types/fontfaceobserver": "^2.1.3",
     "fontfaceobserver": "^2.3.0",
     "git-rev-sync": "^3.0.2",
     "jszip": "^3.10.1",
     "pica": "^10.0.1",
     "stackblur-canvas": "^3.0.1",
+    "typescript": "^6.0.3",
     "vite": "^7.3.5",
     "vite-plugin-html": "^3.2.2",
     "vite-plugin-pwa": "^1.3.0"
