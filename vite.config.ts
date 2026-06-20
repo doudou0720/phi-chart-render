@@ -2,7 +2,7 @@ import config from './package.json';
 import { defineConfig } from 'vite';
 import { createHtmlPlugin } from 'vite-plugin-html';
 import { VitePWA } from 'vite-plugin-pwa';
-import git from 'git-rev-sync';
+import { execSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -10,7 +10,11 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const CurrentVersion = 'v' + config.version + '-' + git.short();
+function gitShort(): string {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+}
+
+const CurrentVersion = 'v' + config.version + '-' + gitShort();
 
 const cdnConfig = {
     modules: [{
