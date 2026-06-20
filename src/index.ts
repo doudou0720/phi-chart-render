@@ -1333,6 +1333,8 @@ async function initConsoleEasterEgg(): Promise<void>
 
 function PlayLikeYouNeverDidBefore(game: PhiChartRender.Game, currentTime: number): void
 {
+    if (isNaN(currentTime)) return;
+
     let currentSpeed = 1 + 0.5 * Math.sin(1.5708 * (currentTime % 2));
     (game.chart.music as unknown as PhiChartRender.WAudio).speed = currentSpeed;
     (game.chart.sprites.info as Record<string, import('pixi.js').Text>).songName.text = game.chart.info.name + ' (x' + Math.round(currentSpeed * 100) / 100 + ')';
