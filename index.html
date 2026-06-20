@@ -100,7 +100,7 @@
     <script>
         // 版本管理
         const APP_VERSION = '<%= GIT_VERSION %>';
-        const CDN_CONFIG = <%= CDN_CONFIG %>;
+        const CDN_CONFIG = <%- CDN_CONFIG %>;
         
         // 注册Service Worker
         if ('serviceWorker' in navigator) {
@@ -152,11 +152,7 @@
         // 在DOM加载完成后执行
         document.addEventListener('DOMContentLoaded', () => {
           loadDependencies().then(() => {
-            // 确保资源加载完成后再加载主脚本
-            const script = document.createElement('script');
-            script.type = 'module';
-            script.src = '/src/index.js';
-            document.body.appendChild(script);
+            // CDN依赖加载完成，主脚本通过底部静态标签加载
           });
         });
     </script>
@@ -426,7 +422,7 @@
         <pre><code class="content">Test Text Not A Real Error</code></pre>
     </div>
 
-    <script type="module" src="/src/index.js" type="module"></script>
+    <script type="module" src="/src/index.ts"></script>
 </body>
 
 </html>

@@ -1,6 +1,6 @@
 const CACHE_NAME = 'phi-chart-render-v1';
 const CDN_CACHE_NAME = 'phi-chart-render-cdn-v1';
-const CDN_CONFIG = <%= CDN_CONFIG %>;
+const CDN_CONFIG = {"modules":[{"name":"pixi.js","var":"PIXI","path":"dist/pixi.min.js","version":"^7.2.4"},{"name":"jszip","var":"JSZip","path":"dist/jszip.min.js","version":"^3.10.1"}]};
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -8,8 +8,6 @@ self.addEventListener('install', (event) => {
       return cache.addAll([
         '/',
         '/index.html',
-        '/src/index.js',
-        // 其他核心资源
       ]);
     })
   );
