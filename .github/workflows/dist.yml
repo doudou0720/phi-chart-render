@@ -20,16 +20,16 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [22.x]
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0  # 获取完整历史记录
   
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
       
@@ -40,7 +40,7 @@ jobs:
           nr build:dev
           
       - name: Deploy to dist branch
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
